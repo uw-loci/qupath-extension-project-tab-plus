@@ -1,0 +1,29 @@
+# Gradle
+build/
+.gradle/
+gradle.properties
+
+# IDEs
+.idea/
+*.iml
+out/
+.settings/
+.project
+.classpath
+.vscode/
+
+# OS
+.DS_Store
+*thumbs.db
+
+# Java crash logs
+hs_err*.log
+
+# Scratch
+*.tmp
+*.bak
+*.swp
+bin/
+codemap/
+codeReadMe.md
+.codereadme/
