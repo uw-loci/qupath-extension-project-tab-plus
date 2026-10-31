@@ -501,8 +501,8 @@ public final class ProjectTabPlusPane extends BorderPane {
                 coordinator.request(Reason.FILTER);
             }
         });
-        keyCombo.setPrefWidth(104);
-        valueCombo.setPrefWidth(104);
+        keyCombo.setPrefWidth(118);
+        valueCombo.setPrefWidth(118);
         searchField.setPrefColumnCount(9);
         searchField.setMaxWidth(Double.MAX_VALUE);
         searchBar.getChildren().addAll(searchField, keyCombo, valueCombo);

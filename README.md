@@ -81,8 +81,8 @@ on the fly -- restart it either way.
 3. **Choose how to group.** Click the **Group by** button in the tab's toolbar. In the
    **Project+ - Display settings** dialog, use **Add level** to pick one or more *metadata
    keys*, for example `Patient` then `Stain`. A metadata key is a label-and-value pair
-   attached to an image in the project, such as `Stain = HE`; QuPath shows them when you
-   right-click an image and choose **Add metadata...**. Images with no value for a key land
+   attached to an image in the project, such as `Stain = HE`; you add one by right-clicking
+   an image and choosing **Add metadata...**. Images with no value for a key land
    under **(Unassigned)**. On first open, Project+ starts from the key the built-in tab was
    already sorting by, if any.
 4. **Open an image and find it again.** Double-click any entry to open it in the viewer. Its
