@@ -30,7 +30,7 @@ import qupath.lib.projects.ProjectImageEntry;
  * Orchestrates the checkbox-mode actions: confirm on the FX thread, close viewers, run the job
  * on {@code ptp-bulk} with the busy strip, then report.
  */
-final class BulkCommands {
+public final class BulkCommands {
 
     private static final Logger logger = LoggerFactory.getLogger(BulkCommands.class);
 
@@ -43,12 +43,13 @@ final class BulkCommands {
         this.qupath = pane.qupath();
     }
 
-    void removeChecked() {
+    /** D4 then remove the checked entries. */
+    public void removeChecked() {
         removeEntries(pane.checkedEntries());
     }
 
     /** D4 then remove; used by the checkbox bar and the context menu's Remove image(s). */
-    void removeEntries(List<ProjectImageEntry<BufferedImage>> entries) {
+    public void removeEntries(List<ProjectImageEntry<BufferedImage>> entries) {
         Project<BufferedImage> project = qupath.getProject();
         if (project == null || entries.isEmpty()) {
             return;
@@ -81,7 +82,8 @@ final class BulkCommands {
         });
     }
 
-    void clearCheckedData() {
+    /** D5 then clear the saved data of the checked entries. */
+    public void clearCheckedData() {
         Project<BufferedImage> project = qupath.getProject();
         List<ProjectImageEntry<BufferedImage>> entries = pane.checkedEntries();
         if (project == null || entries.isEmpty()) {
@@ -117,7 +119,8 @@ final class BulkCommands {
         });
     }
 
-    void exportChecked() {
+    /** D6 then export the checked entries to GeoJSON. */
+    public void exportChecked() {
         Project<BufferedImage> project = qupath.getProject();
         List<ProjectImageEntry<BufferedImage>> entries = pane.checkedEntries();
         if (project == null || entries.isEmpty()) {
@@ -143,8 +146,7 @@ final class BulkCommands {
                 noData++;
             }
         }
-        Path initial = lastExportFolder != null ? lastExportFolder
-                : project.getPath() != null ? project.getPath() : null;
+        Path initial = lastExportFolder != null ? lastExportFolder : projectDirectory(project);
         Optional<BulkDialogs.ExportChoice> choice = BulkDialogs.exportOptions(qupath.getStage(), entries.size(),
                 noData, unsaved, PathPrefs.maskImageNamesProperty().get(), initial);
         if (choice.isEmpty()) {
@@ -185,6 +187,15 @@ final class BulkCommands {
                 report(Kind.EXPORT, outcome, c.folder());
             });
         });
+    }
+
+    /** The project folder: {@code getPath()} is the .qpproj file for a DefaultProject. */
+    private static Path projectDirectory(Project<BufferedImage> project) {
+        Path path = project.getPath();
+        if (path == null) {
+            return null;
+        }
+        return java.nio.file.Files.isDirectory(path) ? path : path.getParent();
     }
 
     private Map<String, List<QuPathViewer>> openViewers(Project<BufferedImage> project,

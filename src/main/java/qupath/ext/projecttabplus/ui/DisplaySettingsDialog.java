@@ -122,7 +122,9 @@ final class DisplaySettingsDialog {
             b.setMaxWidth(Double.MAX_VALUE);
         }
         addLevel.setMaxWidth(Double.MAX_VALUE);
+        addLevel.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         VBox side = new VBox(4, addLevel, remove, up, down);
+        side.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         HBox row = new HBox(6, levels, side);
         HBox.setHgrow(levels, Priority.ALWAYS);
         counts.setTooltip(new Tooltip(Strings.get("settings.counts.tooltip")));

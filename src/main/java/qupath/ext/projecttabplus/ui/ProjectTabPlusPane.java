@@ -364,12 +364,9 @@ public final class ProjectTabPlusPane extends BorderPane {
             indicators.getItems().add(item);
         }
 
-        MenuItem create = ActionUtils.createMenuItem(qupath.getCommonActions().PROJECT_NEW);
-        create.setText(Strings.get("menu.createProject"));
-        MenuItem open = ActionUtils.createMenuItem(qupath.getCommonActions().PROJECT_OPEN);
-        open.setText(Strings.get("menu.openProject"));
-        MenuItem add = ActionUtils.createMenuItem(qupath.getCommonActions().PROJECT_ADD_IMAGES);
-        add.setText(Strings.get("menu.addImages"));
+        MenuItem create = actionItem("menu.createProject", qupath.getCommonActions().PROJECT_NEW);
+        MenuItem open = actionItem("menu.openProject", qupath.getCommonActions().PROJECT_OPEN);
+        MenuItem add = actionItem("menu.addImages", qupath.getCommonActions().PROJECT_ADD_IMAGES);
 
         MenuItem removeCurrent = new MenuItem(Strings.get("menu.removeCurrent"));
         removeCurrent.setOnAction(e -> removeCurrentImage());
@@ -403,6 +400,14 @@ public final class ProjectTabPlusPane extends BorderPane {
                 ((RadioMenuItem) item).setSelected(item.getUserData() == liveProfile.getIndicators());
             }
         });
+    }
+
+    /** A menu item with our own label that fires one of QuPath's common actions. */
+    private static MenuItem actionItem(String textKey, Action action) {
+        MenuItem item = new MenuItem(Strings.get(textKey));
+        item.setOnAction(e -> action.handle(new javafx.event.ActionEvent(item, null)));
+        item.disableProperty().bind(action.disabledProperty());
+        return item;
     }
 
     private void buildBusyStrip() {
@@ -496,9 +501,9 @@ public final class ProjectTabPlusPane extends BorderPane {
                 coordinator.request(Reason.FILTER);
             }
         });
-        keyCombo.setMaxWidth(120);
-        valueCombo.setMaxWidth(120);
-        HBox.setHgrow(searchField, Priority.ALWAYS);
+        keyCombo.setPrefWidth(104);
+        valueCombo.setPrefWidth(104);
+        searchField.setPrefColumnCount(9);
         searchField.setMaxWidth(Double.MAX_VALUE);
         searchBar.getChildren().addAll(searchField, keyCombo, valueCombo);
         searchBar.setPadding(new Insets(2, 4, 4, 4));
@@ -543,10 +548,10 @@ public final class ProjectTabPlusPane extends BorderPane {
         placeholder.setAlignment(Pos.CENTER);
         placeholderText.setWrapText(true);
         placeholderText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-        Button create = ActionUtils.createButton(qupath.getCommonActions().PROJECT_NEW);
-        create.setText(Strings.get("menu.createProject"));
-        Button open = ActionUtils.createButton(qupath.getCommonActions().PROJECT_OPEN);
-        open.setText(Strings.get("menu.openProject"));
+        Button create = new Button(Strings.get("menu.createProject"));
+        create.setOnAction(e -> qupath.getCommonActions().PROJECT_NEW.handle(new javafx.event.ActionEvent(create, null)));
+        Button open = new Button(Strings.get("menu.openProject"));
+        open.setOnAction(e -> qupath.getCommonActions().PROJECT_OPEN.handle(new javafx.event.ActionEvent(open, null)));
         HBox buttons = new HBox(8, create, open);
         buttons.setAlignment(Pos.CENTER);
         Label hint = new Label(Strings.get("placeholder.dragHint"));
@@ -1477,7 +1482,8 @@ public final class ProjectTabPlusPane extends BorderPane {
     // ------------------------------------------------------------------ status and busy
 
     private void updateStatus() {
-        if (statusSticky) {
+        if (statusSticky || statusRevert.getStatus() == javafx.animation.Animation.Status.RUNNING) {
+            // A transient message is showing; it reverts to the totals by itself.
             return;
         }
         status.setText(idleStatusText());
@@ -1675,8 +1681,84 @@ public final class ProjectTabPlusPane extends BorderPane {
     }
 
     /** @return the bulk command helper */
-    BulkCommands bulkCommands() {
+    public BulkCommands bulkCommands() {
         return bulkCommands;
+    }
+
+    /** @return the names of the profiles, in combo order */
+    public List<String> profileNames() {
+        return profiles.stream().map(DisplayProfile::getName).toList();
+    }
+
+    /**
+     * Select a profile by name, discarding unsaved live changes.
+     *
+     * @param name the profile name
+     * @return true when found
+     */
+    public boolean selectProfileNamed(String name) {
+        for (DisplayProfile p : profiles) {
+            if (p.getName().equals(name)) {
+                selectProfile(p, true);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Edit the live profile (grouping, fields, appearance) and apply it to the tab, as the
+     * display settings dialog does.
+     *
+     * @param edit the change
+     */
+    public void editLiveProfile(Consumer<DisplayProfile> edit) {
+        edit.accept(liveProfile);
+        onLiveProfileChanged(true);
+    }
+
+    /**
+     * Save the live state as a new or replaced profile and select it.
+     *
+     * @param name the profile name
+     */
+    public void saveLiveAsProfile(String name) {
+        DisplayProfile target = ProfileDialogs.find(this, name);
+        if (target == null) {
+            target = new DisplayProfile(name);
+            profiles.add(target);
+        }
+        target.copySettingsFrom(liveProfile);
+        selectProfile(target, true);
+        persistProfiles();
+    }
+
+    /** @return the profiles file on disk */
+    public Path profilesFilePath() {
+        return profileStore.getFile();
+    }
+
+    /** @return the tree root's group values at the top level, for tests */
+    public List<String> topLevelGroups() {
+        List<String> out = new ArrayList<>();
+        if (tree.getRoot() != null) {
+            for (TreeItem<Row> item : tree.getRoot().getChildren()) {
+                if (item.getValue() instanceof GroupRow g) {
+                    out.add(g.value());
+                }
+            }
+        }
+        return out;
+    }
+
+    /** @return the current rebuild generation, which increases on every rebuild request */
+    public int generation() {
+        return generation.get();
+    }
+
+    /** @return true while the busy strip is shown */
+    public boolean isBusy() {
+        return busyStrip.isVisible();
     }
 
     /** Stop the background threads. */

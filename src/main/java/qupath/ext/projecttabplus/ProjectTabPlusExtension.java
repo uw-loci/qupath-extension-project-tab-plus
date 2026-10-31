@@ -1,5 +1,6 @@
 package qupath.ext.projecttabplus;
 
+import java.nio.file.Path;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -55,8 +56,7 @@ public class ProjectTabPlusExtension implements QuPathExtension {
             Dialogs.showWarningNotification(Strings.get("notify.title"), Strings.get("notify.noTabPane"));
             return;
         }
-        ProfileStore store = new ProfileStore(ProfileStore.defaultFile(
-                UserDirectoryManager.getInstance().getUserPath()));
+        ProfileStore store = new ProfileStore(ProfileStore.defaultFile(userDirectory()));
         pane = new ProjectTabPlusPane(qupath, store);
         tab = new Tab(Strings.get("tab.text"), pane);
         tab.setTooltip(new Tooltip(Strings.get("tab.tooltip")));
@@ -89,6 +89,19 @@ public class ProjectTabPlusExtension implements QuPathExtension {
             }
         });
         logger.info("Project+ tab installed");
+    }
+
+    /**
+     * QuPath's user directory, or {@code <home>/QuPath} when none has been chosen yet (a fresh
+     * install or a hidden test instance), so the profiles file always has a place to go.
+     */
+    static Path userDirectory() {
+        Path userDir = UserDirectoryManager.getInstance().getUserPath();
+        if (userDir == null) {
+            userDir = Path.of(System.getProperty("user.home"), "QuPath");
+            logger.warn("QuPath has no user directory yet; Project+ profiles go to {}", userDir);
+        }
+        return userDir;
     }
 
     private static Tab findBuiltInTab(TabPane tabPane) {

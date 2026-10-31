@@ -233,7 +233,8 @@ final class EntryActions {
     void browseProject() {
         Project<BufferedImage> project = qupath.getProject();
         if (project != null && project.getPath() != null) {
-            GuiTools.browseDirectory(project.getPath().toFile());
+            Path path = project.getPath();
+            GuiTools.browseDirectory((java.nio.file.Files.isDirectory(path) ? path : path.getParent()).toFile());
         }
     }
 
