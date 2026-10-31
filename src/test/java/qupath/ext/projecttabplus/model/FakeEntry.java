@@ -53,7 +53,7 @@ public final class FakeEntry implements ProjectImageEntry<BufferedImage> {
     }
 
     public EntryInfo info() {
-        return EntryInfo.from(this, null);
+        return EntryInfo.from(this, null, uri -> false);
     }
 
     public ImageRow row() {

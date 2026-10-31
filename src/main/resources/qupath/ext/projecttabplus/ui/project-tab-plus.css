@@ -1,0 +1,71 @@
+/* Project Tab Plus. Scoped to .project-tab-plus so nothing here reaches QuPath's own
+   .project-browser tab or the Active Image Helper's stylesheet. No fixed white, black or gray:
+   every color is a theme variable or a ladder() on -fx-background. */
+
+.project-tab-plus .tree-cell {
+  -fx-font-family: arial;
+}
+
+/* Current image: tinted row + bold. The selection fill wins while the row is selected;
+   bold and the [open] chip carry the state there. */
+.project-tab-plus .tree-cell.ptp-current-image {
+  -fx-background-color: ladder(-fx-background, #2C3E57 49%, #E8F0FE 50%);
+  -fx-font-weight: bold;
+}
+
+.project-tab-plus .tree-cell.ptp-current-image:filled:selected {
+  -fx-background-color: -fx-selection-bar;
+}
+
+.project-tab-plus .tree-view:focused .tree-cell.ptp-current-image:filled:selected {
+  -fx-background-color: -fx-selection-bar;
+}
+
+.project-tab-plus .tree-cell.no-saved-data {
+  -fx-font-style: italic;
+}
+
+.project-tab-plus .tree-cell.missing-uri {
+  -fx-text-fill: -qp-script-warn-color;
+}
+
+.project-tab-plus .ptp-thumbnail {
+  -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 4, 0, 1, 1);
+}
+
+.project-tab-plus .ptp-open-chip {
+  -fx-font-weight: normal;
+  -fx-text-fill: ladder(-fx-background, #ADADAD 49%, #666666 50%);
+}
+
+.project-tab-plus .ptp-fields {
+  -fx-font-weight: normal;
+  -fx-font-size: 0.9em;
+  -fx-text-fill: ladder(-fx-background, #ADADAD 49%, #666666 50%);
+}
+
+.project-tab-plus .ptp-badge {
+  -fx-font-weight: normal;
+  -fx-font-size: 0.9em;
+  -fx-border-width: 0 0 0 3;
+  -fx-padding: 0 2 0 4;
+}
+
+.project-tab-plus .ptp-group-chip {
+  -fx-font-weight: normal;
+  -fx-font-size: 0.85em;
+  -fx-text-fill: ladder(-fx-background, #ADADAD 49%, #666666 50%);
+}
+
+.project-tab-plus .ptp-busy-strip {
+  -fx-padding: 2 4 2 4;
+}
+
+.project-tab-plus .ptp-status {
+  -fx-padding: 2 4 2 4;
+}
+
+.project-tab-plus .ptp-placeholder {
+  -fx-padding: 24;
+  -fx-alignment: center;
+}

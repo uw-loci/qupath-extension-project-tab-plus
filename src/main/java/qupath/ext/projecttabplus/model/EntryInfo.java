@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import qupath.lib.projects.ProjectImageEntry;
 
 /**
@@ -18,9 +19,10 @@ import qupath.lib.projects.ProjectImageEntry;
  *                 remote, multiple and unreadable cases
  * @param imageType the image type read from the saved summary, or null when unknown
  * @param hasImageData whether the entry has saved data
+ * @param fileMissing true when a local file URI points at nothing
  */
 public record EntryInfo(String id, String name, Map<String, String> metadata, String fileName,
-                        String imageType, boolean hasImageData) {
+                        String imageType, boolean hasImageData, boolean fileMissing) {
 
     /** Label the built-in tab uses for an entry whose URI cannot be read. */
     public static final String UNDEFINED = "Undefined";
@@ -35,17 +37,29 @@ public record EntryInfo(String id, String name, Map<String, String> metadata, St
     /**
      * @param entry the project entry
      * @param imageType the image type from the saved summary, or null
+     * @param missingCheck says whether a URI points at a missing file; may touch the disk, so
+     *                     call this off the FX thread
      * @return a snapshot of the entry
      */
-    public static EntryInfo from(ProjectImageEntry<?> entry, String imageType) {
+    public static EntryInfo from(ProjectImageEntry<?> entry, String imageType, Predicate<URI> missingCheck) {
         String fileName;
+        boolean missing = false;
         try {
-            fileName = fileNameFromUris(entry.getURIs());
+            Collection<URI> uris = entry.getURIs();
+            fileName = fileNameFromUris(uris);
+            if (missingCheck != null) {
+                for (URI uri : uris) {
+                    if (missingCheck.test(uri)) {
+                        missing = true;
+                        break;
+                    }
+                }
+            }
         } catch (IOException e) {
             fileName = UNDEFINED;
         }
         return new EntryInfo(entry.getID(), entry.getImageName(), entry.getMetadata(), fileName,
-                imageType, entry.hasImageData());
+                imageType, entry.hasImageData(), missing);
     }
 
     /**
