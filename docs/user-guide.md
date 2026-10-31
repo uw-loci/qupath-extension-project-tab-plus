@@ -153,7 +153,7 @@ Notes:
 
 - The button is disabled when no image is open (tooltip `No image is open.`) or when the open
   image is not an entry of this project, for example a file opened with **File > Open...**
-  (tooltip `The open image is not in this project.`).
+  (tooltip `The current image is not in this project.`).
 - If a search or key/value filter currently hides the entry, Jump **clears the search text and
   both filter combos**, rebuilds the tree and then jumps. The status line says so, in the
   warning color: `Search cleared to show <name>`. The automatic reselect that happens whenever
@@ -203,9 +203,10 @@ Notes:
 The current image's row has a tinted background, a bold name and an `[open]` chip at the
 right end of the row. Only one row is ever marked; when you close the image or open another,
 the mark moves. When that row is also selected, the selection color covers the tint and the
-bold name plus the chip carry the state. The tint color is the theme accent by default and can
-be changed in preferences (**Current image highlight**). If no row is marked while an image
-is open, the image is not an entry of this project. If Active Image Helper is installed it
+bold name plus the chip carry the state. The tint is the theme's color by default; to use
+your own, turn on **Custom current image highlight** in **Edit > Preferences > Project+** and
+pick a **Current image highlight color**. If no row is marked while an image is open, the
+image is not an entry of this project. If Active Image Helper is installed it
 marks the same image on the built-in tab in its own way; the two do not interact.
 
 ### Read the saved-data indicators
@@ -299,8 +300,9 @@ The built-in tab's **Remove image...** acts on the *selected* rows; this command
      size under it. When the file is not eligible the box is disabled and the line under it
      says why: `Cannot offer file deletion: this .vsi image has companion files that QuPath
      does not list.`, `Cannot offer file deletion: 3 other entries in this project use the
-     same file.`, `Cannot offer file deletion: the file was not found.` or `Cannot offer file
-     deletion: the image is not a local file.`
+     same file.`, `Cannot offer file deletion: the file was not found.`, `Cannot offer file
+     deletion: the image is not a local file.` or `Cannot offer file deletion: the image is
+     spread over several files.`
 3. Click **Remove**. If the image has unsaved changes, QuPath asks whether to save them, exactly
    as when you close an image; **Cancel** there cancels the whole removal (status
    `Removal canceled`).
@@ -374,7 +376,8 @@ Notes:
    (`every annotation, detection, cell, tile and TMA grid`) and what stays (`Image type, stain
    settings, metadata and descriptions`), lists the names with `(open)` and
    `(no saved data, skipped)` marks, and summarizes how many will be skipped and how many are
-   open and must be closed first.
+   open and will be closed first. Its last line, `This cannot be undone: QuPath deletes its
+   data.qpdata.bkp backup as soon as the new file is written.`, means what it says.
 2. **Cancel** is the default button; click **Clear saved data** to go ahead. Open images are
    closed first through QuPath's usual save prompt; **Cancel** on any of them stops the job
    before anything is cleared.
@@ -383,9 +386,9 @@ Notes:
    `Cleared saved data for 9 images (3 skipped)`; failures open
    **Project+ - Clearing finished with errors**.
 
-Note: QuPath keeps each image's previous data file as `data.qpdata.bkp` next to the new one
-until that image is next saved, so one clear can be undone by hand (rename the backup back).
-Project+ offers no restore action in this release.
+Note: **clearing cannot be undone.** The dialog says so: `This cannot be undone: QuPath
+deletes its data.qpdata.bkp backup as soon as the new file is written.` Project+ offers no
+restore action. If you might need the objects again, export them to GeoJSON first.
 
 **Export the objects of checked images to GeoJSON**
 
@@ -405,15 +408,17 @@ Project+ offers no restore action in this release.
    **Project+ - Files already exist** reports `<k> of <N> files already exist in this folder.`
    with **Overwrite**, **Skip existing** (default) and **Cancel**.
 5. The busy strip reads `Exporting GeoJSON 4 of 12` with **Cancel**. On success a notification
-   and the status line read `Exported <N> images to <folder>`; failures open
+   and the status line read `Exported <N> images to <folder>`. If every file was skipped by
+   **Skip existing**, that reads `Exported 0 images to <folder>`: nothing was written and
+   nothing was overwritten. Failures open
    **Project+ - Export finished with errors**, listing each failed image and its reason, and
    point you at **View > Show log**.
 
 Notes:
 
-- An image that is open with unsaved changes is reported in the dialog as
+- An image that is open in a viewer is exported from the objects in the viewer, not from its
+  saved data, so unsaved changes are included. The dialog says
   `1 is open with unsaved changes; its CURRENT objects are exported.`
-  <!-- TODO(dev): 02a D6 says the current (live) objects are exported for an open image with unsaved changes; 02_design sec. 2.1 BulkExportGeoJson reads readHierarchy(), which is the saved data. Settle which, and update this line and the D6 notice together. -->
 - With **Mask image names** on, the files take the masked names. That is the point of masking,
   but it is easy to forget; the dialog says so.
 
@@ -461,7 +466,9 @@ the helper normally finds the tab first, but a slow start can still lose the rac
 
 `<QuPath user directory>/project-tab-plus/profiles.json`. The QuPath user directory is the
 one shown under **Edit > Preferences > General > User directory**; **Manage profiles...**
-shows the full path. Plain JSON:
+shows the full path. If QuPath has no user directory yet (a fresh install), the file goes to
+`<home>/QuPath/project-tab-plus/profiles.json` instead and a warning is written to the log.
+Plain JSON:
 
 ```json
 {
@@ -500,9 +507,11 @@ own shortcuts in the viewer.
 | Escape (in the search box) | clear the search, focus the tree |
 | Ctrl+J | jump to current image |
 | F5 | refresh |
+| Ctrl+Shift+D | in checkbox mode, clear every check |
 | Context-menu key or Shift+F10 | open the row's right-click menu |
 
-<!-- TODO(dev): 02a sec. 1.6 also binds Ctrl+Shift+A (check all shown) and Ctrl+Shift+D (clear checks); 02_design sec. 1 says to check QuPath's accelerator table and drop collisions. Add the rows here if they survive. -->
+**Check all shown** has no shortcut: Ctrl+Shift+A is QuPath's own **Create full image
+annotation**, so it was not taken.
 
 Delete is deliberately not bound to removal: the built-in tab does not bind it either, and a
 stray Delete with focus in the tree would open a destructive confirmation you did not expect.
@@ -525,7 +534,8 @@ Global preferences live in **Edit > Preferences**, category **Project+**:
 | Preference | Default | What it does |
 |---|---|---|
 | Hide the built-in Project tab | off | Hides QuPath's own Project tab while Project+ is installed. QuPath keeps using it internally, so nothing breaks; untick to bring it back at once. The gear menu's **Show built-in Project tab** is the same switch. See the Active Image Helper note under [Advanced](#coexistence-with-active-image-helper). |
-| Current image highlight | theme accent | Color of the row tint that marks the current image in the Project+ tab. Leave it as the theme accent unless you run another extension that colors the built-in tab and want both to match. <!-- TODO(dev): 02a sec. 9 wrote this description for the style-A bar ("Color of the bar that marks..."); the chosen style B tints the row (02_design sec. 3, build rule 3). Update the preference description string to say tint, then copy it here verbatim. --> |
+| Custom current image highlight | off | Use the color below instead of the theme tint for the row of the image open in the viewer. Turn it on if you run another extension that colors the built-in tab and want both to match. |
+| Current image highlight color | theme color | Color of the tint on the row of the image open in the viewer, in the Project+ tab. Leave it as the theme color unless you run another extension that colors the built-in tab and want both to match. Used only when the custom highlight above is on. |
 | Open the Project+ tab on startup | on | Selects the Project+ tab when QuPath starts and a project is open. It does not take the selection away from an undocked built-in tab. Untick to keep QuPath's own tab selection. |
 
 Everything else is part of a **display profile** (see [Save and switch display profiles](#save-and-switch-display-profiles)), saved with **Save profile** and switched with the combo:
@@ -544,7 +554,7 @@ Not settings, but honored:
 |---|---|
 | Search syntax | fixed; documented under [Search and filter](#search-and-filter) |
 | Mask image names | QuPath's own setting (right-click menu); Project+ honors it in rows, grouping and export file names |
-| Profiles file location | fixed at `<QuPath user directory>/project-tab-plus/profiles.json` |
+| Profiles file location | fixed at `<QuPath user directory>/project-tab-plus/profiles.json`, or `<home>/QuPath/project-tab-plus/profiles.json` when QuPath has no user directory yet |
 | Last-used profile | automatic; per user in QuPath's preferences and per project in project metadata |
 
 </details>
@@ -558,8 +568,8 @@ Each entry: what you see, why, what to do.
 
 **"Project+ - File kept" after choosing to move a file to the trash.**
 The dialog reads `The file could not be moved to the trash.` with the path and a reason:
-`the operating system reports no trash support` or `the file is in use by another program`.
-The file was not touched. The entry is removed from the project only if you click
+`the operating system reports no trash support` or `the file is in use by another program or
+could not be moved`. The file was not touched. The entry is removed from the project only if you click
 **Remove from project**; **Cancel** keeps it. Some Linux desktops and WSL report no trash
 support. On Windows a just-closed image can stay locked for a moment: wait a few seconds and
 try again, or delete the file by hand from the path shown.
@@ -593,7 +603,7 @@ visible if you rely on the helper's items there.
 The built-in tab is undocked, so there is nothing in the pane to hide. Close its window to
 dock it back into the pane, then hide it.
 
-**Jump is disabled with "The open image is not in this project."**
+**Jump is disabled with "The current image is not in this project."**
 The viewer shows an image that was opened with **File > Open...** rather than from the
 project, or from another project. Add it to the project (gear > **Add images...**) and open it
 from the tree, or open the right project.
@@ -608,8 +618,8 @@ overwritten. If names are masked, every file has a masked name; turn off **Mask 
 to export with real names.
 
 **Clear saved data asked to close an image first.**
-Clearing the data file under an open image would be undone by the next save from the viewer,
-so the dialog closes open images first, with QuPath's usual save prompt. **Cancel** at that
+Clearing the data file under an open image would be overwritten by the next save from the
+viewer, so the dialog closes open images first, with QuPath's usual save prompt. **Cancel** at that
 prompt stops the whole job before anything is cleared.
 
 **Nothing happens after a checkbox-mode action, and the log mentions a dialog.**
