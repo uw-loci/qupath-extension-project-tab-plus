@@ -409,8 +409,9 @@ restore action. If you might need the objects again, export them to GeoJSON firs
    with **Overwrite**, **Skip existing** (default) and **Cancel**.
 5. The busy strip reads `Exporting GeoJSON 4 of 12` with **Cancel**. On success a notification
    and the status line read `Exported <N> images to <folder>`. If every file was skipped by
-   **Skip existing**, that reads `Exported 0 images to <folder>`: nothing was written and
-   nothing was overwritten. Failures open
+   **Skip existing**, the notification and status line read
+   `Skipped <N> existing files; nothing exported`: nothing was written and nothing was
+   overwritten. Failures open
    **Project+ - Export finished with errors**, listing each failed image and its reason, and
    point you at **View > Show log**.
 
