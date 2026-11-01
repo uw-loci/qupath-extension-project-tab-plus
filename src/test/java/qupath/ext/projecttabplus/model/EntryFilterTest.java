@@ -14,6 +14,7 @@ class EntryFilterTest {
     private static final FakeEntry HE = new FakeEntry("1", "liver_12_HE_0.svs").meta("Stain", "HE").meta("Patient", "12").data(true);
     private static final FakeEntry PPM = new FakeEntry("2", "liver_12_PPM.tif").meta("Stain", "PPM").data(false);
     private static final FakeEntry PLAIN = new FakeEntry("3", "other.svs").data(true);
+    private static final FakeEntry EQUALS_NAME = new FakeEntry("4", "run=7.tif").data(true);
 
     private static final ObjectPresence ANNOT = ObjectPresence.of(3, 0, 0, 0, 0, null, false);
     private static final ObjectPresence CELLS = ObjectPresence.of(0, 0, 400, 0, 0, null, false);
@@ -50,6 +51,60 @@ class EntryFilterTest {
     }
 
     @Test
+    void plainKeyValueMatchesMetadata() {
+        EntryFilter f = EntryFilter.of("Stain=HE", null, null);
+        assertTrue(test(f, HE, null));
+        assertFalse(test(f, PPM, null));
+        assertFalse(test(f, PLAIN, null));
+        assertFalse(test(f, EQUALS_NAME, null));
+    }
+
+    @Test
+    void plainKeyValueIgnoresCase() {
+        EntryFilter f = EntryFilter.of("stain=he", null, null);
+        assertTrue(test(f, HE, null));
+        assertFalse(test(f, PPM, null));
+    }
+
+    @Test
+    void plainHasDataStillWorks() {
+        EntryFilter f = EntryFilter.of("has_data=false", null, null);
+        assertTrue(test(f, PPM, null));
+        assertFalse(test(f, HE, null));
+        assertFalse(test(f, PLAIN, null));
+    }
+
+    @Test
+    void plainNameSubstringStillWorks() {
+        EntryFilter f = EntryFilter.of("liver", null, null);
+        assertTrue(test(f, HE, null));
+        assertTrue(test(f, PPM, null));
+        assertFalse(test(f, PLAIN, null));
+        assertFalse(test(f, EQUALS_NAME, null));
+    }
+
+    @Test
+    void nameContainingEqualsIsStillFoundByName() {
+        // "run=7" becomes the token "run=7", which QuPath tests against the name before the
+        // metadata, so a name with "=" in it matches as it did when the text was name-only.
+        EntryFilter f = EntryFilter.of("run=7", null, null);
+        assertTrue(test(f, EQUALS_NAME, null));
+        assertFalse(test(f, HE, null));
+        assertTrue(test(EntryFilter.of("=7", null, null), EQUALS_NAME, null));
+    }
+
+    @Test
+    void loneKeyValueGetsTrailingBar() {
+        Set<EntryFilter.Has> into = EnumSet.noneOf(EntryFilter.Has.class);
+        assertEquals("Stain=HE|", EntryFilter.stripHasTokens("Stain=HE", into));
+        assertEquals("has_data=false|", EntryFilter.stripHasTokens("has_data=false", into));
+        assertEquals("Stain=HE|", EntryFilter.stripHasTokens("Stain=HE|has=tma", into));
+        assertEquals("a=b|c", EntryFilter.stripHasTokens("a=b|c", into));
+        assertEquals("liver", EntryFilter.stripHasTokens("liver", into));
+        assertEquals("", EntryFilter.stripHasTokens("has=annotations", into));
+    }
+
+    @Test
     void hasKeywordsAreStrippedBeforeDelegating() {
         Set<EntryFilter.Has> into = EnumSet.noneOf(EntryFilter.Has.class);
         assertEquals("", EntryFilter.stripHasTokens("has=annotations", into));
@@ -64,7 +119,7 @@ class EntryFilterTest {
         assertEquals(EnumSet.of(EntryFilter.Has.DETECTIONS), into);
 
         into.clear();
-        assertEquals("has=nothing", EntryFilter.stripHasTokens("has=nothing", into));
+        assertEquals("has=nothing|", EntryFilter.stripHasTokens("has=nothing", into));
         assertTrue(into.isEmpty());
 
         into.clear();

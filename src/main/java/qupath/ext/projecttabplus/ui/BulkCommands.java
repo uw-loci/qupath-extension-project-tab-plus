@@ -259,12 +259,16 @@ public final class BulkCommands {
         String status = switch (kind) {
             case REMOVE -> Strings.plural("status.bulkRemoved.one", "status.bulkRemoved.many", outcome.done());
             case CLEAR -> Strings.format("status.bulkCleared", outcome.done(), outcome.skipped());
-            case EXPORT -> Strings.format("status.bulkExported", outcome.done(), folder);
+            case EXPORT -> outcome.onlySkippedExisting()
+                    ? Strings.format("status.bulkExportSkippedExisting", outcome.skippedExisting())
+                    : Strings.format("status.bulkExported", outcome.done(), folder);
         };
         String notice = switch (kind) {
             case REMOVE -> Strings.plural("notify.removed.one", "notify.removed.many", outcome.done());
             case CLEAR -> Strings.format("notify.cleared", outcome.done());
-            case EXPORT -> Strings.format("notify.exported", outcome.done(), folder);
+            case EXPORT -> outcome.onlySkippedExisting()
+                    ? Strings.format("notify.exportSkippedExisting", outcome.skippedExisting())
+                    : Strings.format("notify.exported", outcome.done(), folder);
         };
         pane.setTransientStatus(status, false);
         Dialogs.showInfoNotification(Strings.get("notify.title"), notice);

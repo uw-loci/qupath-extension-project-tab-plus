@@ -57,11 +57,14 @@ public final class BulkJobs {
      *
      * @param total entries in the job
      * @param done entries processed successfully
-     * @param skipped entries skipped (no saved data)
+     * @param skipped entries skipped, for any reason (no saved data, or the file already existed)
+     * @param skippedExisting entries skipped because the target file existed; a subset of
+     *                        {@code skipped}
      * @param failures entries that failed
      * @param canceled true when the user stopped the job
      */
-    public record Outcome(int total, int done, int skipped, List<Failure> failures, boolean canceled) {
+    public record Outcome(int total, int done, int skipped, int skippedExisting, List<Failure> failures,
+                          boolean canceled) {
 
         public Outcome {
             failures = Collections.unmodifiableList(new ArrayList<>(failures));
@@ -75,6 +78,11 @@ public final class BulkJobs {
         /** @return entries processed plus skipped plus failed */
         public int attempted() {
             return done + skipped + failures.size();
+        }
+
+        /** @return true when nothing was exported or failed and at least one existing file was skipped */
+        public boolean onlySkippedExisting() {
+            return done == 0 && skippedExisting > 0 && failures.isEmpty();
         }
     }
 
@@ -135,7 +143,7 @@ public final class BulkJobs {
             logger.error("Could not save the project after removing entries: {}", e.getMessage(), e);
             failures.add(new Failure(project.getName(), "project file could not be saved: " + shortReason(e)));
         }
-        return new Outcome(entries.size(), done, 0, failures, canceled);
+        return new Outcome(entries.size(), done, 0, 0, failures, canceled);
     }
 
     /**
@@ -183,7 +191,7 @@ public final class BulkJobs {
                 }
             }
         }
-        return new Outcome(entries.size(), done, skipped, failures, canceled);
+        return new Outcome(entries.size(), done, skipped, 0, failures, canceled);
     }
 
     /**
@@ -245,6 +253,7 @@ public final class BulkJobs {
         PathIO.GeoJsonExportOptions[] geoArray = geo.toArray(new PathIO.GeoJsonExportOptions[0]);
         int done = 0;
         int skipped = 0;
+        int skippedExisting = 0;
         boolean canceled = false;
         for (ProjectImageEntry<BufferedImage> entry : entries) {
             if (cancel.getAsBoolean()) {
@@ -260,6 +269,7 @@ public final class BulkJobs {
             Path target = options.folder().resolve(names.get(entry.getID()));
             if (Files.exists(target) && options.overwrite() == OverwritePolicy.SKIP) {
                 skipped++;
+                skippedExisting++;
                 continue;
             }
             try {
@@ -275,7 +285,7 @@ public final class BulkJobs {
                 failures.add(new Failure(entry.getImageName(), exportReason(e)));
             }
         }
-        return new Outcome(entries.size(), done, skipped, failures, canceled);
+        return new Outcome(entries.size(), done, skipped, skippedExisting, failures, canceled);
     }
 
     private static String exportReason(Exception e) {

@@ -79,12 +79,14 @@ public final class EntryFilter implements Predicate<EntryFilter.Candidate> {
 
     /**
      * Pull the {@code has=} tokens out of the text and hand back what QuPath's predicate should
-     * see. A trailing {@code |} keeps the token mode (name OR metadata) when the original text had
-     * more than one token, since QuPath treats text without a bar as a name-only search.
+     * see. QuPath parses {@code key=value} and {@code has_data=} only in token mode, which it
+     * enters only when the text contains {@code |}; text without a bar is a name-only search. So
+     * a lone {@code key=value} gets a trailing {@code |} (QuPath drops the empty token), and a
+     * trailing bar is kept when the original text had more than one token.
      */
     static String stripHasTokens(String text, Set<Has> into) {
         if (!text.toLowerCase(Locale.ROOT).contains(HAS_PREFIX)) {
-            return text;
+            return keepTokenMode(text);
         }
         boolean tokenMode = text.contains("|");
         List<String> rest = new ArrayList<>();
@@ -106,7 +108,16 @@ public final class EntryFilter implements Predicate<EntryFilter.Candidate> {
             return "";
         }
         String joined = String.join("|", rest);
-        return tokenMode && rest.size() == 1 ? joined + "|" : joined;
+        return tokenMode && rest.size() == 1 ? joined + "|" : keepTokenMode(joined);
+    }
+
+    /**
+     * @param text the text QuPath will see
+     * @return the text with a trailing {@code |} when it holds {@code =} but no bar, so a plain
+     *         {@code key=value} is read as a metadata token (and still matched against the name)
+     */
+    private static String keepTokenMode(String text) {
+        return text.contains("=") && !text.contains("|") ? text + "|" : text;
     }
 
     /** @return true when nothing is filtered */
