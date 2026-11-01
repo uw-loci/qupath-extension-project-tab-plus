@@ -484,6 +484,8 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private void buildBottom() {
         status.getStyleClass().add("ptp-status");
+        // Warnings such as a missing profile are longer than a 300 px pane: wrap rather than cut them.
+        status.setWrapText(true);
         status.setMaxWidth(Double.MAX_VALUE);
         status.setTooltip(Tooltips.of(Strings.get("status.tooltip")));
         status.setOnMouseClicked(e -> {
