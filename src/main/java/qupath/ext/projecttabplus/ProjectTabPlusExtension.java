@@ -7,13 +7,13 @@ import javafx.beans.binding.BooleanBinding;
 import javafx.scene.Node;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.Tooltip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.projecttabplus.model.ProfileStore;
 import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.ext.projecttabplus.ui.ProjectTabPlusPane;
 import qupath.ext.projecttabplus.ui.Strings;
+import qupath.ext.projecttabplus.ui.Tooltips;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.utils.FXUtils;
 import qupath.lib.common.Version;
@@ -59,7 +59,7 @@ public class ProjectTabPlusExtension implements QuPathExtension {
         ProfileStore store = new ProfileStore(ProfileStore.defaultFile(userDirectory()));
         pane = new ProjectTabPlusPane(qupath, store);
         tab = new Tab(Strings.get("tab.text"), pane);
-        tab.setTooltip(new Tooltip(Strings.get("tab.tooltip")));
+        tab.setTooltip(Tooltips.of(Strings.get("tab.tooltip")));
         tab.setClosable(false);
 
         builtInTab = findBuiltInTab(tabPane);
@@ -131,9 +131,9 @@ public class ProjectTabPlusExtension implements QuPathExtension {
         }
         if (hide) {
             if (!tabPane.getTabs().contains(builtInTab)) {
-                if (builtInTab.getTabPane() == null && builtInTab.getContent() != null
-                        && builtInTab.getContent().getScene() != null) {
-                    // Undocked into its own window: nothing to hide.
+                if (builtInTab.getTabPane() == null) {
+                    // Undocked into its own window (FXUtils moves the content out and leaves the
+                    // tab with no content, so the tab pane is the only reliable sign): nothing to hide.
                     Dialogs.showWarningNotification(Strings.get("notify.title"), Strings.get("notify.builtInUndocked"));
                     ProjectTabPlusPreferences.hideBuiltInProjectTabProperty().set(false);
                 }
@@ -151,6 +151,11 @@ public class ProjectTabPlusExtension implements QuPathExtension {
             logger.info("Built-in Project tab hidden");
         } else {
             if (tabPane.getTabs().contains(builtInTab)) {
+                return;
+            }
+            if (builtInTab.getContent() == null) {
+                // Undocked (FXUtils holds the content): it comes back when its window closes;
+                // re-adding the empty tab here left two Project tabs after the redock.
                 return;
             }
             tabPane.getTabs().add(Math.min(builtInIndex, tabPane.getTabs().size()), builtInTab);

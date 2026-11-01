@@ -48,7 +48,6 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
@@ -176,7 +175,7 @@ public final class ProjectTabPlusPane extends BorderPane {
     private final ToggleButton checkboxToggle = new ToggleButton();
     private final Button refreshButton = new Button();
     private final Button legendButton = new Button();
-    private final HBox busyStrip = new HBox(6);
+    private final VBox busyStrip = new VBox(2);
     private final Label busyLabel = new Label();
     private final ProgressBar busyBar = new ProgressBar();
     private final Button busyCancel = new Button(Strings.get("busy.cancel"));
@@ -244,7 +243,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         profileCombo.setMinWidth(90);
         profileCombo.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(profileCombo, Priority.ALWAYS);
-        profileCombo.setTooltip(new Tooltip(Strings.get("toolbar.profile.tooltip")));
+        profileCombo.setTooltip(Tooltips.of(Strings.get("toolbar.profile.tooltip")));
         profileCombo.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(DisplayProfile item, boolean empty) {
@@ -281,7 +280,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         });
 
         gear.setGraphic(IconFactory.createNode(ICON_SIZE, ICON_SIZE, PathIcons.COG));
-        gear.setTooltip(new Tooltip(Strings.get("toolbar.gear.tooltip")));
+        gear.setTooltip(Tooltips.of(Strings.get("toolbar.gear.tooltip")));
         buildGearMenu();
         HBox row1 = new HBox(4, profileCombo, gear);
         row1.setAlignment(Pos.CENTER_LEFT);
@@ -291,7 +290,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         iconButton(groupByButton, PathIcons.TABLE, "toolbar.groupBy.tooltip", "toolbar.groupBy.accessible");
         groupByButton.setOnAction(e -> showDisplaySettings());
         checkboxToggle.setGraphic(IconFactory.createNode(ICON_SIZE, ICON_SIZE, PathIcons.SELECTION_MODE));
-        checkboxToggle.setTooltip(new Tooltip(Strings.get("toolbar.checkboxMode.tooltip")));
+        checkboxToggle.setTooltip(Tooltips.of(Strings.get("toolbar.checkboxMode.tooltip")));
         checkboxToggle.setAccessibleText(Strings.get("toolbar.checkboxMode.accessible"));
         checkboxToggle.setMinSize(24, 24);
         checkboxMode.bindBidirectional(checkboxToggle.selectedProperty());
@@ -315,7 +314,7 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private static void iconButton(Button b, PathIcons icon, String tooltipKey, String accessibleKey) {
         b.setGraphic(IconFactory.createNode(ICON_SIZE, ICON_SIZE, icon));
-        b.setTooltip(new Tooltip(Strings.get(tooltipKey)));
+        b.setTooltip(Tooltips.of(Strings.get(tooltipKey)));
         b.setAccessibleText(Strings.get(accessibleKey));
         b.setMinSize(24, 24);
     }
@@ -412,13 +411,17 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private void buildBusyStrip() {
         busyStrip.getStyleClass().add("ptp-busy-strip");
-        busyStrip.setAlignment(Pos.CENTER_LEFT);
+        busyLabel.setMinWidth(0);
+        busyLabel.setMaxWidth(Double.MAX_VALUE);
+        busyCancel.setMinWidth(Region.USE_PREF_SIZE);
         busyBar.setMaxWidth(Double.MAX_VALUE);
         busyBar.setPrefHeight(6);
         HBox.setHgrow(busyBar, Priority.ALWAYS);
-        busyCancel.setTooltip(new Tooltip(Strings.get("busy.cancel.tooltip")));
+        busyCancel.setTooltip(Tooltips.of(Strings.get("busy.cancel.tooltip")));
         busyCancel.setOnAction(e -> cancelRequested.set(true));
-        busyStrip.getChildren().addAll(busyLabel, busyBar, busyCancel);
+        HBox busyRow = new HBox(6, busyBar, busyCancel);
+        busyRow.setAlignment(Pos.CENTER_LEFT);
+        busyStrip.getChildren().addAll(busyLabel, busyRow);
         busyStrip.setVisible(false);
         busyStrip.setManaged(false);
         busyDelay.setOnFinished(e -> {
@@ -455,14 +458,14 @@ public final class ProjectTabPlusPane extends BorderPane {
                 e.consume();
             }
         });
-        setCenter(tree);
+        showCenter(tree);
         checkedIds.addListener((javafx.collections.SetChangeListener<String>) c -> updateStatus());
     }
 
     private void buildBottom() {
         status.getStyleClass().add("ptp-status");
         status.setMaxWidth(Double.MAX_VALUE);
-        status.setTooltip(new Tooltip(Strings.get("status.tooltip")));
+        status.setTooltip(Tooltips.of(Strings.get("status.tooltip")));
         status.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
                 clearFilters();
@@ -470,7 +473,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         });
 
         searchField.setPromptText(Strings.get("search.prompt"));
-        searchField.setTooltip(new Tooltip(Strings.get("search.tooltip")));
+        searchField.setTooltip(Tooltips.of(Strings.get("search.tooltip")));
         searchField.setPrefColumnCount(14);
         searchField.textProperty().addListener((obs, o, n) -> {
             if (!suppressFilterRebuild) {
@@ -484,8 +487,8 @@ public final class ProjectTabPlusPane extends BorderPane {
                 e.consume();
             }
         });
-        keyCombo.setTooltip(new Tooltip(Strings.get("filter.key.tooltip")));
-        valueCombo.setTooltip(new Tooltip(Strings.get("filter.value.tooltip")));
+        keyCombo.setTooltip(Tooltips.of(Strings.get("filter.key.tooltip")));
+        valueCombo.setTooltip(Tooltips.of(Strings.get("filter.value.tooltip")));
         keyCombo.getItems().setAll(Strings.get("filter.anyKey"));
         keyCombo.getSelectionModel().selectFirst();
         valueCombo.getItems().setAll(Strings.get("filter.anyValue"));
@@ -501,8 +504,8 @@ public final class ProjectTabPlusPane extends BorderPane {
                 coordinator.request(Reason.FILTER);
             }
         });
-        keyCombo.setPrefWidth(118);
-        valueCombo.setPrefWidth(118);
+        keyCombo.setPrefWidth(128);
+        valueCombo.setPrefWidth(128);
         searchField.setPrefColumnCount(9);
         searchField.setMaxWidth(Double.MAX_VALUE);
         searchBar.getChildren().addAll(searchField, keyCombo, valueCombo);
@@ -510,12 +513,12 @@ public final class ProjectTabPlusPane extends BorderPane {
 
         bulkCount.setMinWidth(Region.USE_PREF_SIZE);
         Button checkAll = new Button(Strings.get("bulk.checkAllShown"));
-        checkAll.setTooltip(new Tooltip(Strings.get("bulk.checkAllShown.tooltip")));
+        checkAll.setTooltip(Tooltips.of(Strings.get("bulk.checkAllShown.tooltip")));
         checkAll.setOnAction(e -> checkAllShown());
         Button clear = new Button(Strings.get("bulk.clear"));
-        clear.setTooltip(new Tooltip(Strings.get("bulk.clear.tooltip")));
+        clear.setTooltip(Tooltips.of(Strings.get("bulk.clear.tooltip")));
         clear.setOnAction(e -> checkedIds.clear());
-        bulkActions.setTooltip(new Tooltip(Strings.get("bulk.actions.tooltip")));
+        bulkActions.setTooltip(Tooltips.of(Strings.get("bulk.actions.tooltip")));
         bulkActions.disableProperty().bind(Bindings.isEmpty(checkedIds));
         MenuItem remove = new MenuItem(Strings.get("bulk.action.remove"));
         remove.setOnAction(e -> bulkCommands.removeChecked());
@@ -569,7 +572,23 @@ public final class ProjectTabPlusPane extends BorderPane {
         buttons.setManaged(projectButtons);
         hint.setVisible(projectButtons);
         hint.setManaged(projectButtons);
-        setCenter(placeholder);
+        showCenter(placeholder);
+    }
+
+    /**
+     * Swap the center node while keeping the Tab order toolbar, center, bottom: BorderPane appends a
+     * re-set center after the bottom bar, which put the tree last in keyboard traversal.
+     */
+    private void showCenter(Node center) {
+        if (getCenter() == center) {
+            return;
+        }
+        setCenter(center);
+        Node bottom = getBottom();
+        if (bottom != null) {
+            setBottom(null);
+            setBottom(bottom);
+        }
     }
 
     private void buildContextMenu() {
@@ -1048,7 +1067,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         } else if (built.shown() == 0) {
             showPlaceholder(Strings.get("placeholder.noMatches"), false);
         } else {
-            setCenter(tree);
+            showCenter(tree);
         }
         refreshKeyCombo();
         updateStatus();
@@ -1224,7 +1243,7 @@ public final class ProjectTabPlusPane extends BorderPane {
     private void updateJumpState() {
         boolean noImage = qupath.getImageData() == null;
         jumpButton.setDisable(currentEntryId == null);
-        jumpButton.setTooltip(new Tooltip(currentEntryId != null
+        jumpButton.setTooltip(Tooltips.of(currentEntryId != null
                 ? Strings.get("toolbar.jump.tooltip")
                 : noImage ? Strings.get("toolbar.jump.noImage") : Strings.get("toolbar.jump.notInProject")));
     }

@@ -64,13 +64,17 @@ final class EntryTreeCell extends TreeCell<Row> {
     private final Label groupChips = new Label();
     private final HBox groupBox = new HBox(6);
 
-    private final Tooltip tooltip = new Tooltip();
+    private final Tooltip tooltip = Tooltips.of("");
     private final ImageView tooltipImage = new ImageView();
 
     private String shownThumbnailId;
 
     EntryTreeCell(ProjectTabPlusPane pane) {
         this.pane = pane;
+
+        // A tiny preferred width keeps the virtual flow from widening every cell to the longest row;
+        // the cell is laid out at the viewport width and the labels below ellipsize instead.
+        setPrefWidth(1);
 
         check.setFocusTraversable(false);
         check.setOnAction(e -> {
@@ -84,8 +88,8 @@ final class EntryTreeCell extends TreeCell<Row> {
         thumbPane.getChildren().addAll(canvas, missingIcon, failedIcon);
         thumbPane.setAlignment(Pos.CENTER);
         missingIcon.getStyleClass().add(STYLE_MISSING);
-        Tooltip.install(missingIcon, new Tooltip(Strings.get("row.missingFile")));
-        Tooltip.install(failedIcon, new Tooltip(Strings.get("row.thumbnailFailed")));
+        Tooltip.install(missingIcon, Tooltips.of(Strings.get("row.missingFile")));
+        Tooltip.install(failedIcon, Tooltips.of(Strings.get("row.thumbnailFailed")));
 
         name.setMinWidth(0);
         name.setMaxWidth(Double.MAX_VALUE);
@@ -109,7 +113,11 @@ final class EntryTreeCell extends TreeCell<Row> {
         imageBox.setAlignment(Pos.CENTER_LEFT);
         imageBox.setMinWidth(0);
 
+        groupText.setMinWidth(0);
+        groupText.setTextOverrun(OverrunStyle.ELLIPSIS);
         groupChips.getStyleClass().add("ptp-group-chip");
+        groupChips.setMinWidth(Region.USE_PREF_SIZE);
+        groupBox.setMinWidth(0);
         groupBox.setAlignment(Pos.CENTER_LEFT);
 
         tooltipImage.setFitWidth(TOOLTIP_THUMB);
@@ -145,7 +153,8 @@ final class EntryTreeCell extends TreeCell<Row> {
             int[] counts = pane.checkedUnder(group);
             check.setIndeterminate(counts[0] > 0 && counts[0] < counts[1]);
             check.setSelected(counts[1] > 0 && counts[0] == counts[1]);
-            check.setTooltip(new Tooltip(Strings.get("bulk.groupCheckbox.tooltip")));
+            check.setTooltip(Tooltips.of(Strings.get("bulk.groupCheckbox.tooltip")));
+            check.setAccessibleText(group.value());
             groupBox.getChildren().add(check);
         }
         groupText.setText(group.value() + " (" + group.imageCount() + ")");
@@ -188,6 +197,7 @@ final class EntryTreeCell extends TreeCell<Row> {
             check.setIndeterminate(false);
             check.setSelected(pane.checkedIds().contains(row.id()));
             check.setTooltip(null);
+            check.setAccessibleText(row.info().name());
             imageBox.getChildren().add(check);
         }
 

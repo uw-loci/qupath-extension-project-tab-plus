@@ -70,10 +70,11 @@ public final class BulkCommands {
             closeAll(closed);
             Outcome outcome = BulkJobs.removeEntries(project, entries, dataToTrash,
                     pane.busyProgress("busy.removing"), pane::isCancelRequested);
-            for (ProjectImageEntry<BufferedImage> e : entries) {
-                pane.checkedIds().remove(e.getID());
-            }
             Platform.runLater(() -> {
+                // The checked set drives the status label, so it changes on the FX thread only.
+                for (ProjectImageEntry<BufferedImage> e : entries) {
+                    pane.checkedIds().remove(e.getID());
+                }
                 pane.hideBusy();
                 qupath.refreshProject();
                 pane.refreshAfterChange();

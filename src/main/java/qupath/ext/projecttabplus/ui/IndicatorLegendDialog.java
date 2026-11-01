@@ -3,10 +3,12 @@ package qupath.ext.projecttabplus.ui;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.prefs.PathPrefs;
@@ -15,10 +17,19 @@ import qupath.lib.gui.tools.ColorToolsFX;
 /** The non-modal legend: what the edges, badges and search keywords mean, with labeled swatches. */
 final class IndicatorLegendDialog {
 
+    private static Dialog<ButtonType> open;
+
     private IndicatorLegendDialog() {
     }
 
     static void show(QuPathGUI qupath) {
+        if (open != null && open.isShowing()) {
+            Window w = open.getDialogPane().getScene() == null ? null : open.getDialogPane().getScene().getWindow();
+            if (w != null) {
+                w.requestFocus();
+            }
+            return;
+        }
         VBox box = new VBox(6);
         box.setPadding(new Insets(4));
         box.getChildren().add(wrapped(Strings.get("legend.intro")));
@@ -32,14 +43,15 @@ final class IndicatorLegendDialog {
         box.getChildren().add(wrapped(Strings.get("legend.hover")));
         box.getChildren().add(wrapped(Strings.get("legend.search")));
         box.setPrefWidth(420);
-        Dialogs.builder()
+        open = Dialogs.builder()
                 .title(Strings.get("legend.title"))
                 .content(box)
                 .owner(qupath.getStage())
                 .nonModal()
                 .buttons(new ButtonType(Strings.get("legend.close"), javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE))
                 .resizable()
-                .show();
+                .build();
+        open.show();
     }
 
     private static Label wrapped(String text) {

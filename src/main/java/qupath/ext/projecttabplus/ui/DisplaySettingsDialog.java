@@ -17,8 +17,8 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -69,7 +69,7 @@ final class DisplaySettingsDialog {
         scroll.setFitToWidth(true);
 
         Button save = new Button(Strings.get("settings.saveToProfile"));
-        save.setTooltip(new Tooltip(Strings.get("settings.saveToProfile.tooltip")));
+        save.setTooltip(Tooltips.of(Strings.get("settings.saveToProfile.tooltip")));
         save.disableProperty().bind(pane.profileModifiedProperty().not());
         save.setOnAction(e -> pane.saveLiveToProfile());
         Button close = new Button(Strings.get("settings.close"));
@@ -81,7 +81,7 @@ final class DisplaySettingsDialog {
 
         BorderPane root = new BorderPane(scroll);
         root.setBottom(buttons);
-        stage.setScene(new Scene(root, 380, 460));
+        stage.setScene(new Scene(root, 470, 480));
         stage.setOnHidden(e -> pane.settingsDialogClosed());
         pane.profileModifiedProperty().addListener((obs, o, n) -> updateTitle());
         countDebounce.setOnFinished(e -> recount());
@@ -90,8 +90,9 @@ final class DisplaySettingsDialog {
 
     private VBox buildGrouping() {
         Label label = new Label(Strings.get("settings.levels.label"));
-        levels.setTooltip(new Tooltip(Strings.get("settings.levels.tooltip")));
+        levels.setTooltip(Tooltips.of(Strings.get("settings.levels.tooltip")));
         levels.setPrefHeight(96);
+        levels.setMinWidth(60);
         levels.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(GroupingKey item, boolean empty) {
@@ -99,10 +100,10 @@ final class DisplaySettingsDialog {
                 setText(empty || item == null ? null : (getIndex() + 1) + ". " + item.displayName());
             }
         });
-        addLevel.setTooltip(new Tooltip(Strings.get("settings.addLevel.tooltip")));
+        addLevel.setTooltip(Tooltips.of(Strings.get("settings.addLevel.tooltip")));
         addLevel.setOnShowing(e -> fillAddMenu());
         Button remove = new Button(Strings.get("settings.removeLevel"));
-        remove.setTooltip(new Tooltip(Strings.get("settings.removeLevel.tooltip")));
+        remove.setTooltip(Tooltips.of(Strings.get("settings.removeLevel.tooltip")));
         remove.disableProperty().bind(levels.getSelectionModel().selectedItemProperty().isNull());
         remove.setOnAction(e -> {
             int i = levels.getSelectionModel().getSelectedIndex();
@@ -112,11 +113,11 @@ final class DisplaySettingsDialog {
             }
         });
         Button up = new Button(Strings.get("settings.up"));
-        up.setTooltip(new Tooltip(Strings.get("settings.upDown.tooltip")));
+        up.setTooltip(Tooltips.of(Strings.get("settings.upDown.tooltip")));
         up.disableProperty().bind(levels.getSelectionModel().selectedIndexProperty().lessThan(1));
         up.setOnAction(e -> move(-1));
         Button down = new Button(Strings.get("settings.down"));
-        down.setTooltip(new Tooltip(Strings.get("settings.upDown.tooltip")));
+        down.setTooltip(Tooltips.of(Strings.get("settings.upDown.tooltip")));
         down.setOnAction(e -> move(1));
         for (Button b : new Button[] {remove, up, down}) {
             b.setMaxWidth(Double.MAX_VALUE);
@@ -127,17 +128,15 @@ final class DisplaySettingsDialog {
         side.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         HBox row = new HBox(6, levels, side);
         HBox.setHgrow(levels, Priority.ALWAYS);
-        counts.setTooltip(new Tooltip(Strings.get("settings.counts.tooltip")));
+        counts.setTooltip(Tooltips.of(Strings.get("settings.counts.tooltip")));
         counts.setWrapText(true);
 
-        Label expandLabel = new Label(Strings.get("settings.expand"));
-        HBox expandRow = new HBox(8, expandLabel);
-        expandRow.setAlignment(Pos.CENTER_LEFT);
+        FlowPane expandRow = radioRow(Strings.get("settings.expand"));
         for (ExpandOnLoad v : ExpandOnLoad.values()) {
             RadioButton rb = new RadioButton(Strings.get("expand." + v.name()));
             rb.setToggleGroup(expandGroup);
             rb.setUserData(v);
-            rb.setTooltip(new Tooltip(Strings.get("settings.expand.tooltip")));
+            rb.setTooltip(Tooltips.of(Strings.get("settings.expand.tooltip")));
             rb.setOnAction(e -> {
                 if (!loading) {
                     pane.profile().setExpandOnLoad(v);
@@ -150,13 +149,12 @@ final class DisplaySettingsDialog {
     }
 
     private VBox buildAppearance() {
-        HBox thumbRow = new HBox(8, new Label(Strings.get("settings.thumbnail")));
-        thumbRow.setAlignment(Pos.CENTER_LEFT);
+        FlowPane thumbRow = radioRow(Strings.get("settings.thumbnail"));
         for (ThumbnailSize v : ThumbnailSize.values()) {
             RadioButton rb = new RadioButton(Strings.get("thumbnailSize." + v.name()));
             rb.setToggleGroup(thumbGroup);
             rb.setUserData(v);
-            rb.setTooltip(new Tooltip(Strings.get("settings.thumbnail.tooltip")));
+            rb.setTooltip(Tooltips.of(Strings.get("settings.thumbnail.tooltip")));
             rb.setOnAction(e -> {
                 if (!loading) {
                     pane.profile().setThumbnailSize(v);
@@ -165,13 +163,12 @@ final class DisplaySettingsDialog {
             });
             thumbRow.getChildren().add(rb);
         }
-        HBox indRow = new HBox(8, new Label(Strings.get("settings.indicators")));
-        indRow.setAlignment(Pos.CENTER_LEFT);
+        FlowPane indRow = radioRow(Strings.get("settings.indicators"));
         for (IndicatorStyle v : IndicatorStyle.values()) {
             RadioButton rb = new RadioButton(Strings.get("indicators." + v.name()));
             rb.setToggleGroup(indicatorGroup);
             rb.setUserData(v);
-            rb.setTooltip(new Tooltip(Strings.get("settings.indicators.tooltip")));
+            rb.setTooltip(Tooltips.of(Strings.get("settings.indicators.tooltip")));
             rb.setOnAction(e -> {
                 if (!loading) {
                     pane.profile().setIndicators(v);
@@ -181,6 +178,16 @@ final class DisplaySettingsDialog {
             indRow.getChildren().add(rb);
         }
         return new VBox(6, thumbRow, indRow);
+    }
+
+    /** A label followed by radio buttons that wrap onto a second line when the dialog is narrow. */
+    private static FlowPane radioRow(String labelText) {
+        Label label = new Label(labelText);
+        label.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        FlowPane row = new FlowPane(8, 4, label);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setRowValignment(javafx.geometry.VPos.CENTER);
+        return row;
     }
 
     private void fillAddMenu() {
@@ -301,7 +308,7 @@ final class DisplaySettingsDialog {
         CheckBox cb = new CheckBox(text);
         cb.setUserData(key);
         cb.setSelected(selected);
-        cb.setTooltip(new Tooltip(Strings.get("settings.field.tooltip")));
+        cb.setTooltip(Tooltips.of(Strings.get("settings.field.tooltip")));
         cb.setOnAction(e -> {
             if (!loading) {
                 applyFields();

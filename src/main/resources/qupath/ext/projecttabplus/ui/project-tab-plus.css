@@ -13,12 +13,19 @@
   -fx-font-weight: bold;
 }
 
+/* Selected: hand the fill back to Modena, which sets -fx-background to the focused or
+   unfocused selection bar, so every label inside flips its text color with it. Forcing
+   -fx-selection-bar here painted dark text on the blue bar whenever the tree lacked focus. */
 .project-tab-plus .tree-cell.ptp-current-image:filled:selected {
-  -fx-background-color: -fx-selection-bar;
+  -fx-background-color: -fx-background;
 }
 
-.project-tab-plus .tree-view:focused .tree-cell.ptp-current-image:filled:selected {
-  -fx-background-color: -fx-selection-bar;
+/* Muted text on a selection bar: follow the bar's text color instead of staying gray. */
+.project-tab-plus .tree-cell:filled:selected .ptp-open-chip,
+.project-tab-plus .tree-cell:filled:selected .ptp-fields,
+.project-tab-plus .tree-cell:filled:selected .ptp-group-chip,
+.project-tab-plus .tree-cell:filled:selected .ptp-badge {
+  -fx-text-fill: -fx-text-background-color;
 }
 
 .project-tab-plus .tree-cell.no-saved-data {

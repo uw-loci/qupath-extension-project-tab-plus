@@ -2,11 +2,11 @@ package qupath.ext.projecttabplus.ui;
 
 import java.util.Optional;
 import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.beans.binding.Bindings;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
@@ -139,11 +139,12 @@ final class ProfileDialogs {
         if (r.isEmpty() || r.get() != del) {
             return;
         }
-        boolean wasSelected = profile == pane.savedProfile();
-        pane.profiles().remove(profile);
-        if (wasSelected) {
+        // Switch away BEFORE removing: dropping the combo's current item makes the combo pick a
+        // neighbor, which ran the unsaved-changes prompt (D8) for the profile just deleted.
+        if (profile == pane.savedProfile()) {
             pane.selectProfile(pane.profiles().get(0), true);
         }
+        pane.profiles().remove(profile);
         pane.persistProfiles();
     }
 
@@ -166,18 +167,21 @@ final class ProfileDialogs {
     private static String askName(Window owner, String title, String prompt, String initial) {
         while (true) {
             TextField field = new TextField(initial);
-            field.setTooltip(new Tooltip(Strings.get("profile.saveAs.tooltip")));
+            field.setTooltip(Tooltips.of(Strings.get("profile.saveAs.tooltip")));
             field.setPrefColumnCount(24);
             Label label = new Label(prompt);
             label.setLabelFor(field);
             VBox box = new VBox(6, label, field);
-            Optional<ButtonType> r = Dialogs.builder()
+            Dialog<ButtonType> dialog = Dialogs.builder()
                     .title(title)
                     .content(box)
                     .owner(owner)
                     .modality(Modality.WINDOW_MODAL)
                     .buttons(ButtonType.OK, ButtonType.CANCEL)
-                    .showAndWait();
+                    .build();
+            dialog.getDialogPane().lookupButton(ButtonType.OK).disableProperty().bind(
+                    Bindings.createBooleanBinding(() -> !isValidName(field.getText()), field.textProperty()));
+            Optional<ButtonType> r = dialog.showAndWait();
             if (r.isEmpty() || r.get() != ButtonType.OK) {
                 return null;
             }
@@ -194,6 +198,11 @@ final class ProfileDialogs {
             }
             return name;
         }
+    }
+
+    private static boolean isValidName(String text) {
+        String name = text == null ? "" : text.trim();
+        return !name.isEmpty() && !ProfileStore.DEFAULT_NAME.equals(name);
     }
 
     static DisplayProfile find(ProjectTabPlusPane pane, String name) {

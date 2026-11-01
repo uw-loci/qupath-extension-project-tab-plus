@@ -17,9 +17,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
@@ -57,7 +57,7 @@ final class BulkDialogs {
         CheckBox data = new CheckBox(Strings.get("d4.dataCheckbox"));
         data.setSelected(false);
         data.setWrapText(true);
-        data.setTooltip(new Tooltip(Strings.get("d4.dataCheckbox.tooltip")));
+        data.setTooltip(Tooltips.of(Strings.get("d4.dataCheckbox.tooltip")));
         Label files = new Label(Strings.get("d4.filesNote"));
         files.setWrapText(true);
         VBox box = new VBox(8, list, openNote, data, files);
@@ -123,7 +123,11 @@ final class BulkDialogs {
         folder.setPrefColumnCount(28);
         HBox.setHgrow(folder, Priority.ALWAYS);
         Button browse = new Button(Strings.get("d6.browse"));
-        HBox folderRow = new HBox(6, new Label(Strings.get("d6.folder")), folder, browse);
+        Label folderLabel = new Label(Strings.get("d6.folder"));
+        folderLabel.setMinWidth(Region.USE_PREF_SIZE);
+        folderLabel.setLabelFor(folder);
+        browse.setMinWidth(Region.USE_PREF_SIZE);
+        HBox folderRow = new HBox(6, folderLabel, folder, browse);
         folderRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         Label folderState = new Label();
         folderState.setWrapText(true);
@@ -131,11 +135,11 @@ final class BulkDialogs {
         Label onePer = new Label(Strings.get("d6.oneFilePer"));
         CheckBox compress = new CheckBox(Strings.get("d6.compress"));
         compress.setSelected(true);
-        compress.setTooltip(new Tooltip(Strings.get("d6.compress.tooltip")));
+        compress.setTooltip(Tooltips.of(Strings.get("d6.compress.tooltip")));
         CheckBox pretty = new CheckBox(Strings.get("d6.pretty"));
-        pretty.setTooltip(new Tooltip(Strings.get("d6.pretty.tooltip")));
+        pretty.setTooltip(Tooltips.of(Strings.get("d6.pretty.tooltip")));
         CheckBox exclude = new CheckBox(Strings.get("d6.excludeMeasurements"));
-        exclude.setTooltip(new Tooltip(Strings.get("d6.excludeMeasurements.tooltip")));
+        exclude.setTooltip(Tooltips.of(Strings.get("d6.excludeMeasurements.tooltip")));
         VBox box = new VBox(8, folderRow, folderState, onePer, compress, pretty, exclude);
         if (noData > 0) {
             box.getChildren().add(wrapped(Strings.plural("d6.noDataNote.one", "d6.noDataNote.many", noData)));

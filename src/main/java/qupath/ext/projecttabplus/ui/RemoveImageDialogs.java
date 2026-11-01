@@ -10,7 +10,6 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
@@ -47,7 +46,7 @@ public final class RemoveImageDialogs {
                                                            DeleteEligibility eligibility, long fileSize) {
         CheckBox data = new CheckBox(Strings.get("d1.dataCheckbox"));
         data.setSelected(false);
-        data.setTooltip(new Tooltip(Strings.get("d1.dataCheckbox.tooltip")));
+        data.setTooltip(Tooltips.of(Strings.get("d1.dataCheckbox.tooltip")));
         data.setWrapText(true);
         CheckBox file = new CheckBox(Strings.get("d1.fileCheckbox"));
         file.setSelected(false);
@@ -56,7 +55,7 @@ public final class RemoveImageDialogs {
         fileLine.setWrapText(true);
         fileLine.getStyleClass().add("ptp-fields");
         if (eligibility.isEligible()) {
-            file.setTooltip(new Tooltip(Strings.get("d1.fileCheckbox.tooltip")));
+            file.setTooltip(Tooltips.of(Strings.get("d1.fileCheckbox.tooltip")));
             fileLine.setText(Strings.format("d1.fileLine", eligibility.path(), formatSize(fileSize)));
         } else {
             file.setDisable(true);
@@ -169,7 +168,7 @@ public final class RemoveImageDialogs {
     private static void installTooltip(Dialog<ButtonType> dialog, ButtonType type, String text) {
         var node = dialog.getDialogPane().lookupButton(type);
         if (node instanceof javafx.scene.control.Control c) {
-            c.setTooltip(new Tooltip(text));
+            c.setTooltip(Tooltips.of(text));
         }
     }
 

@@ -9,7 +9,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -145,7 +144,7 @@ final class ProfileManagerDialog {
 
     private static Button button(String textKey, String tooltipKey) {
         Button b = new Button(Strings.get(textKey));
-        b.setTooltip(new Tooltip(Strings.get(tooltipKey)));
+        b.setTooltip(Tooltips.of(Strings.get(tooltipKey)));
         b.setMaxWidth(Double.MAX_VALUE);
         return b;
     }
