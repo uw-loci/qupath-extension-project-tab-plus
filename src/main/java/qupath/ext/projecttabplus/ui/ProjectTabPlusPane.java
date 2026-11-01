@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -48,6 +49,7 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
@@ -59,6 +61,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.controlsfx.control.action.Action;
@@ -156,6 +159,8 @@ public final class ProjectTabPlusPane extends BorderPane {
     private Set<String> metadataKeys = new TreeSet<>();
     private Map<String, Set<String>> valuesByKey = Map.of();
     private String pendingJumpId;
+    /** A project's remembered profile name that this machine's profiles file lacks, until reported. */
+    private String missingProfileName;
     private boolean suppressFilterRebuild;
 
     // Checkbox mode
@@ -181,6 +186,9 @@ public final class ProjectTabPlusPane extends BorderPane {
     private final ComboBox<DisplayProfile> profileCombo = new ComboBox<>(profiles);
     private final MenuButton gear = new MenuButton();
     private final Button jumpButton = new Button();
+    /** Carries the Jump tooltip while the button is disabled: a disabled node gets no hover. */
+    private final StackPane jumpHolder = new StackPane(jumpButton);
+    private Tooltip jumpDisabledTooltip;
     private final Button groupByButton = new Button();
     private final ToggleButton checkboxToggle = new ToggleButton();
     private final Button refreshButton = new Button();
@@ -299,7 +307,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         jumpButton.setOnAction(e -> jumpToCurrent(true));
         iconButton(groupByButton, PathIcons.TABLE, "toolbar.groupBy.tooltip", "toolbar.groupBy.accessible");
         groupByButton.setOnAction(e -> showDisplaySettings());
-        checkboxToggle.setGraphic(IconFactory.createNode(ICON_SIZE, ICON_SIZE, PathIcons.SELECTION_MODE));
+        checkboxToggle.setGraphic(CheckboxIcon.create(ICON_SIZE));
         checkboxToggle.setTooltip(Tooltips.of(Strings.get("toolbar.checkboxMode.tooltip")));
         checkboxToggle.setAccessibleText(Strings.get("toolbar.checkboxMode.accessible"));
         checkboxToggle.setMinSize(24, 24);
@@ -314,7 +322,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         legendButton.setOnAction(e -> IndicatorLegendDialog.show(qupath));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row2 = new HBox(4, jumpButton, groupByButton, checkboxToggle, refreshButton, spacer, legendButton);
+        HBox row2 = new HBox(4, jumpHolder, groupByButton, checkboxToggle, refreshButton, spacer, legendButton);
         row2.setAlignment(Pos.CENTER_LEFT);
 
         VBox toolbar = new VBox(4, row1, row2, busyStrip);
@@ -518,7 +526,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         });
         keyCombo.setPrefWidth(128);
         valueCombo.setPrefWidth(128);
-        searchField.setPrefColumnCount(9);
+        // Wide enough for the whole prompt at 13 px; beside the key combo it still fits a 300 px pane.
+        searchField.setPrefWidth(156);
         searchField.setMaxWidth(Double.MAX_VALUE);
         searchBar.getChildren().addAll(searchField, keyCombo, valueCombo);
         searchBar.setPadding(new Insets(2, 4, 4, 4));
@@ -893,8 +902,9 @@ public final class ProjectTabPlusPane extends BorderPane {
         if (project != null) {
             String stored = project.getMetadata().get(PROJECT_PROFILE_KEY);
             String name = stored != null ? stored : ProjectTabPlusPreferences.lastProfileProperty().get();
-            DisplayProfile target = profiles.stream().filter(p -> p.getName().equals(name)).findFirst()
-                    .orElse(profiles.get(0));
+            Optional<DisplayProfile> match = profiles.stream().filter(p -> p.getName().equals(name)).findFirst();
+            missingProfileName = stored != null && match.isEmpty() ? stored : null;
+            DisplayProfile target = match.orElse(profiles.get(0));
             if (target == savedProfile && !profileModified.get()) {
                 coordinator.request(Reason.PROJECT);
             } else {
@@ -1107,6 +1117,10 @@ public final class ProjectTabPlusPane extends BorderPane {
         updateStatus();
         updateJumpState();
         warnMissingProfileKeys();
+        if (missingProfileName != null) {
+            setStickyStatus(Strings.format("status.profileNotOnMachine", missingProfileName));
+            missingProfileName = null;
+        }
         if (pendingJumpId != null) {
             String id = pendingJumpId;
             pendingJumpId = null;
@@ -1281,10 +1295,19 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private void updateJumpState() {
         boolean noImage = qupath.getImageData() == null;
-        jumpButton.setDisable(currentEntryId == null);
-        jumpButton.setTooltip(Tooltips.of(currentEntryId != null
-                ? Strings.get("toolbar.jump.tooltip")
-                : noImage ? Strings.get("toolbar.jump.noImage") : Strings.get("toolbar.jump.notInProject")));
+        boolean enabled = currentEntryId != null;
+        jumpButton.setDisable(!enabled);
+        // The enabled tooltip lives on the button; the reason it is disabled lives on the holder,
+        // because a disabled node receives no mouse events and so never shows its own tooltip.
+        if (jumpDisabledTooltip != null) {
+            Tooltip.uninstall(jumpHolder, jumpDisabledTooltip);
+            jumpDisabledTooltip = null;
+        }
+        if (!enabled) {
+            jumpDisabledTooltip = Tooltips.of(noImage
+                    ? Strings.get("toolbar.jump.noImage") : Strings.get("toolbar.jump.notInProject"));
+            Tooltip.install(jumpHolder, jumpDisabledTooltip);
+        }
     }
 
     /**

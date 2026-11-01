@@ -10,11 +10,13 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import qupath.ext.projecttabplus.core.DeleteEligibility;
 import qupath.fx.dialogs.Dialogs;
+import qupath.lib.gui.prefs.PathPrefs;
 
 /** D1, D2 and D3: the remove-current-image confirmations. Every string is from the design. */
 public final class RemoveImageDialogs {
@@ -56,7 +58,21 @@ public final class RemoveImageDialogs {
         fileLine.getStyleClass().add("ptp-fields");
         if (eligibility.isEligible()) {
             file.setTooltip(Tooltips.of(Strings.get("d1.fileCheckbox.tooltip")));
-            fileLine.setText(Strings.format("d1.fileLine", eligibility.path(), formatSize(fileSize)));
+            // One line that ellipsizes its middle, so a long path never breaks inside a word and
+            // the size at the end stays visible. While names are masked, only the folder is shown.
+            fileLine.setWrapText(false);
+            fileLine.setTextOverrun(OverrunStyle.CENTER_ELLIPSIS);
+            fileLine.setMinWidth(0);
+            fileLine.setMaxWidth(Double.MAX_VALUE);
+            if (PathPrefs.maskImageNamesProperty().get()) {
+                Path parent = eligibility.path().getParent();
+                fileLine.setText(Strings.format("d1.fileLineMasked",
+                        parent == null ? "" : parent.toString(), formatSize(fileSize)));
+            } else {
+                String line = Strings.format("d1.fileLine", eligibility.path(), formatSize(fileSize));
+                fileLine.setText(line);
+                fileLine.setTooltip(Tooltips.of(line));
+            }
         } else {
             file.setDisable(true);
             fileLine.setText(reasonText(eligibility));
@@ -76,7 +92,7 @@ public final class RemoveImageDialogs {
                 .modality(Modality.APPLICATION_MODAL)
                 .buttons(remove, cancel)
                 .build();
-        DialogButtons.setDefault(dialog, remove);
+        DialogButtons.setDefault(dialog, cancel);
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() != remove) {
             return Optional.empty();

@@ -3,6 +3,7 @@ package qupath.ext.projecttabplus.ui;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.animation.PauseTransition;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -118,6 +119,10 @@ final class DisplaySettingsDialog {
         up.setOnAction(e -> move(-1));
         Button down = new Button(Strings.get("settings.down"));
         down.setTooltip(Tooltips.of(Strings.get("settings.upDown.tooltip")));
+        down.disableProperty().bind(Bindings.createBooleanBinding(() -> {
+            int i = levels.getSelectionModel().getSelectedIndex();
+            return i < 0 || i >= levels.getItems().size() - 1;
+        }, levels.getSelectionModel().selectedIndexProperty(), levels.getItems()));
         down.setOnAction(e -> move(1));
         for (Button b : new Button[] {remove, up, down}) {
             b.setMaxWidth(Double.MAX_VALUE);

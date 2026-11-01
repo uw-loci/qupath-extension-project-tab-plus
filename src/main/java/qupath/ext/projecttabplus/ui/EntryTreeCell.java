@@ -60,6 +60,7 @@ final class EntryTreeCell extends TreeCell<Row> {
     private final VBox textBox = new VBox(1);
     private final HBox imageBox = new HBox(6);
 
+    private final Label groupKey = new Label();
     private final Label groupText = new Label();
     private final Label groupChips = new Label();
     private final HBox groupBox = new HBox(6);
@@ -113,6 +114,8 @@ final class EntryTreeCell extends TreeCell<Row> {
         imageBox.setAlignment(Pos.CENTER_LEFT);
         imageBox.setMinWidth(0);
 
+        groupKey.getStyleClass().add("ptp-group-key");
+        groupKey.setMinWidth(Region.USE_PREF_SIZE);
         groupText.setMinWidth(0);
         groupText.setTextOverrun(OverrunStyle.ELLIPSIS);
         groupChips.getStyleClass().add("ptp-group-chip");
@@ -156,6 +159,10 @@ final class EntryTreeCell extends TreeCell<Row> {
             check.setTooltip(Tooltips.of(Strings.get("bulk.groupCheckbox.tooltip")));
             check.setAccessibleText(group.value());
             groupBox.getChildren().add(check);
+        }
+        if (group.key() != null) {
+            groupKey.setText(Strings.format("row.groupKeyPrefix", group.key().displayName()));
+            groupBox.getChildren().add(groupKey);
         }
         groupText.setText(group.value() + " (" + group.imageCount() + ")");
         groupBox.getChildren().add(groupText);

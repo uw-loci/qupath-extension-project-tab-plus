@@ -75,7 +75,7 @@ final class BulkDialogs {
                 .buttons(remove, cancel)
                 .resizable()
                 .build();
-        DialogButtons.setDefault(dialog, remove);
+        DialogButtons.setDefault(dialog, cancel);
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() != remove) {
             return Optional.empty();

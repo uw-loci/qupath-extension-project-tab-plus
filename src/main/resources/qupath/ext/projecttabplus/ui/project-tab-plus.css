@@ -76,3 +76,13 @@
   -fx-padding: 24;
   -fx-alignment: center;
 }
+
+/* Group rows: the grouping key as a muted prefix before the value, e.g. "Patient: 12 (2)". */
+.project-tab-plus .ptp-group-key {
+  -fx-font-weight: normal;
+  -fx-text-fill: ladder(-fx-background, #ADADAD 49%, #666666 50%);
+}
+
+.project-tab-plus .tree-cell:filled:selected .ptp-group-key {
+  -fx-text-fill: -fx-text-background-color;
+}
