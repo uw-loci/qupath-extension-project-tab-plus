@@ -9,7 +9,8 @@ import qupath.lib.projects.ProjectImageEntry;
 
 /**
  * Bulk clear with one checked entry open in the viewer: D5 closes it first, both entries end
- * with zero saved objects, a backup is kept, and the viewer is empty.
+ * with zero saved objects, no stale data.qpdata.bkp is left behind (QuPath 0.7 deletes it after
+ * a good save, so there is no undo), and the viewer is empty.
  *
  * <p>args: projectDir
  */
