@@ -1551,6 +1551,33 @@ public final class ProjectTabPlusPane extends BorderPane {
         return row.id().equals(currentEntryId);
     }
 
+    /**
+     * @param groupItem a group's tree item
+     * @return true when the current image sits under this group but its row is hidden, because
+     *         this group or a group below it is collapsed; every ancestor above the collapse
+     *         answers true, so the highlight forms a trail down to the collapsed row
+     */
+    boolean isCurrentHiddenUnder(TreeItem<Row> groupItem) {
+        if (currentEntryId == null || groupItem == null) {
+            return false;
+        }
+        TreeItem<Row> leaf = itemById.get(currentEntryId);
+        if (leaf == null) {
+            return false;
+        }
+        boolean under = false;
+        boolean hidden = false;
+        for (TreeItem<Row> p = leaf.getParent(); p != null; p = p.getParent()) {
+            if (p == groupItem) {
+                under = true;
+            }
+            if (p.getParent() != null && !p.isExpanded()) {
+                hidden = true;
+            }
+        }
+        return under && hidden;
+    }
+
     boolean isContextMenuShowing() {
         return contextMenuShowing;
     }

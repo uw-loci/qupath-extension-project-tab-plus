@@ -7,8 +7,10 @@
 }
 
 /* Current image: tinted row + bold. The selection fill wins while the row is selected;
-   bold and the [open] chip carry the state there. */
-.project-tab-plus .tree-cell.ptp-current-image {
+   bold and the [open] chip carry the state there. A group row that hides the current image
+   (it or a group below it is collapsed) carries the same look with an [open inside] chip. */
+.project-tab-plus .tree-cell.ptp-current-image,
+.project-tab-plus .tree-cell.ptp-current-ancestor {
   -fx-background-color: ladder(-fx-background, #2C3E57 49%, #E8F0FE 50%);
   -fx-font-weight: bold;
 }
@@ -16,7 +18,8 @@
 /* Selected: hand the fill back to Modena, which sets -fx-background to the focused or
    unfocused selection bar, so every label inside flips its text color with it. Forcing
    -fx-selection-bar here painted dark text on the blue bar whenever the tree lacked focus. */
-.project-tab-plus .tree-cell.ptp-current-image:filled:selected {
+.project-tab-plus .tree-cell.ptp-current-image:filled:selected,
+.project-tab-plus .tree-cell.ptp-current-ancestor:filled:selected {
   -fx-background-color: -fx-background;
 }
 

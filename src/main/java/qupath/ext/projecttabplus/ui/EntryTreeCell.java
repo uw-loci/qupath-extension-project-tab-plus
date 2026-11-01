@@ -40,6 +40,7 @@ import qupath.lib.gui.tools.IconFactory.PathIcons;
 final class EntryTreeCell extends TreeCell<Row> {
 
     static final String STYLE_CURRENT = "ptp-current-image";
+    static final String STYLE_CURRENT_ANCESTOR = "ptp-current-ancestor";
     static final String STYLE_NO_DATA = "no-saved-data";
     static final String STYLE_MISSING = "missing-uri";
 
@@ -55,6 +56,7 @@ final class EntryTreeCell extends TreeCell<Row> {
     private final Node failedIcon = IconFactory.createNode(15, 15, PathIcons.INACTIVE_SERVER);
     private final Label name = new Label();
     private final Label chip = new Label(Strings.get("row.openChip"));
+    private final Label groupChip = new Label(Strings.get("row.openInsideChip"));
     private final Label fields = new Label();
     private final HBox badges = new HBox(6);
     private final VBox textBox = new VBox(1);
@@ -120,6 +122,8 @@ final class EntryTreeCell extends TreeCell<Row> {
         groupText.setTextOverrun(OverrunStyle.ELLIPSIS);
         groupChips.getStyleClass().add("ptp-group-chip");
         groupChips.setMinWidth(Region.USE_PREF_SIZE);
+        groupChip.getStyleClass().add("ptp-open-chip");
+        groupChip.setMinWidth(Region.USE_PREF_SIZE);
         groupBox.setMinWidth(0);
         groupBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -131,7 +135,7 @@ final class EntryTreeCell extends TreeCell<Row> {
     @Override
     protected void updateItem(Row item, boolean empty) {
         super.updateItem(item, empty);
-        getStyleClass().removeAll(STYLE_CURRENT, STYLE_NO_DATA, STYLE_MISSING);
+        getStyleClass().removeAll(STYLE_CURRENT, STYLE_CURRENT_ANCESTOR, STYLE_NO_DATA, STYLE_MISSING);
         setStyle("");
         if (empty || item == null) {
             setText(null);
@@ -168,6 +172,15 @@ final class EntryTreeCell extends TreeCell<Row> {
         groupBox.getChildren().add(groupText);
         TreeItem<Row> treeItem = getTreeItem();
         boolean collapsed = treeItem != null && !treeItem.isExpanded();
+        boolean currentInside = pane.isCurrentHiddenUnder(treeItem);
+        if (currentInside) {
+            getStyleClass().add(STYLE_CURRENT_ANCESTOR);
+            String custom = pane.customHighlightStyle();
+            if (custom != null) {
+                setStyle(custom);
+            }
+            groupBox.getChildren().add(groupChip);
+        }
         if (collapsed && pane.profile().getIndicators() != IndicatorStyle.OFF) {
             boolean[] any = pane.presenceUnder(group);
             groupChips.setText((any[0] ? Strings.get("row.badge.annotations") : "-") + " "
@@ -177,7 +190,8 @@ final class EntryTreeCell extends TreeCell<Row> {
         }
         setGraphic(groupBox);
         tooltip.setGraphic(null);
-        tooltip.setText(group.key() == null ? group.value() : group.key().displayName() + ": " + group.value());
+        String groupTip = group.key() == null ? group.value() : group.key().displayName() + ": " + group.value();
+        tooltip.setText(currentInside ? groupTip + "\n" + Strings.get("row.tooltip.openInside") : groupTip);
         setTooltip(pane.isContextMenuShowing() ? null : tooltip);
     }
 

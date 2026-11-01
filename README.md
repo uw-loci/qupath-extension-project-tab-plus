@@ -35,7 +35,8 @@ worth the screen space.
 
 - **Grouping by several metadata keys**, in any order, with `(Unassigned)` for images that
   lack a value.
-- **The current image marked** with a tinted, bold row and an `[open]` chip, and a
+- **The current image marked** with a tinted, bold row and an `[open]` chip (the group rows
+  above it take the tint and an `[open inside]` chip while it is collapsed out of view), and a
   **Jump to current image** button that expands the tree and scrolls to it.
 - **Saved-data indicators** on each thumbnail: solid top edge for annotations, hatched (`////`)
   right edge for detections, cells and tiles, solid bottom edge for TMA cores. The hatching

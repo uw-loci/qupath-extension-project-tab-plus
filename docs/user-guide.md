@@ -81,7 +81,8 @@ are honored exactly as in the built-in tab), optionally a second line of `key: v
 chosen in the display settings, and the saved-data indicators drawn on the thumbnail's edges.
 An entry with no saved data has its name in *italic*, the same convention QuPath's own tab
 uses. The current image's row is tinted, its name is bold, and an `[open]` chip sits at the
-right end of the row. Hover a row for the full details: its first line says `Open in viewer`,
+right end of the row; when that row is hidden inside a collapsed group, the group rows above
+it carry the tint and an `[open inside]` chip instead. Hover a row for the full details: its first line says `Open in viewer`,
 `Open in viewer, unsaved changes`, `No saved data`, `Saved data: no objects` or the counts
 (`Saved data: 12 annotations, 4,310 cells, 96 TMA cores`), followed by QuPath's usual
 summary and a larger thumbnail.
@@ -228,9 +229,12 @@ Notes:
 ### Read the current-image highlight
 
 The current image's row has a tinted background, a bold name and an `[open]` chip at the
-right end of the row. Only one row is ever marked; when you close the image or open another,
-the mark moves. When that row is also selected, the selection color covers the tint and the
-bold name plus the chip carry the state. The tint is the theme's color by default; to use
+right end of the row. When you close the image or open another, the mark moves. If the row
+is hidden because a group above it is collapsed, every group row on the path down to the
+collapsed one is tinted and bold and ends with an `[open inside]` chip, so a glance at the
+top level still tells you where the image is; expand the chain (or press **Jump to current
+image**) and the mark returns to the image row alone. When a marked row is also selected,
+the selection color covers the tint and the bold name plus the chip carry the state. The tint is the theme's color by default; to use
 your own, turn on **Custom current image highlight** in **Edit > Preferences > Project+** and
 pick a **Current image highlight color**. If no row is marked while an image is open, the
 image is not an entry of this project. If Active Image Helper is installed it
@@ -830,7 +834,7 @@ of them, that is a bug.
 | **(Unassigned)** | The group for entries that have no value for the current level's key. Same label the built-in tab uses. |
 | **Undefined** | The file-location value for an entry whose location cannot be read. Same label the built-in tab uses. |
 | **display profile** (short: **profile**) | A named, saved set of grouping levels, expand-on-load, fields, thumbnail size and indicator style. Stored per user, not per project. |
-| **current-image highlight** | The tinted, bold row with the `[open]` chip that marks the current image. |
+| **current-image highlight** | The tinted, bold row with the `[open]` chip that marks the current image; the same tint with an `[open inside]` chip on the group rows above it while it is collapsed out of view. |
 | **jump to current image** | The action that expands the tree to, selects and scrolls to the current image's row, clearing a search that hides it. |
 | **saved data** | The objects (annotations, detections, cells, tiles, TMA grid) QuPath stored for an entry the last time it was saved. Lives in the project's data folder, not in the image file. |
 | **saved-data indicators** | The thumbnail edges or badges showing which object types the saved data holds. Reflect the last save, except for the current image. |
