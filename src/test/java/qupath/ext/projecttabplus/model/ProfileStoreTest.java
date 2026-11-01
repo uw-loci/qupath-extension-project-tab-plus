@@ -20,9 +20,28 @@ class ProfileStoreTest {
     @Test
     void missingFileYieldsDefaultOnly() {
         ProfileStore store = new ProfileStore(dir.resolve("none").resolve("profiles.json"));
+        assertFalse(store.lastLoadFoundFile());
         List<DisplayProfile> p = store.load();
         assertEquals(1, p.size());
         assertEquals(ProfileStore.DEFAULT_NAME, p.get(0).getName());
+        assertFalse(store.lastLoadFoundFile());
+    }
+
+    @Test
+    void loadReportsWhetherTheFileExisted() throws Exception {
+        ProfileStore store = new ProfileStore(dir.resolve("profiles.json"));
+        store.load();
+        assertFalse(store.lastLoadFoundFile());
+        DisplayProfile def = new DisplayProfile("Default");
+        def.setThumbnailSize(DisplayProfile.ThumbnailSize.LARGE);
+        store.save(List.of(def));
+        List<DisplayProfile> back = store.load();
+        assertTrue(store.lastLoadFoundFile());
+        assertEquals(DisplayProfile.ThumbnailSize.LARGE, back.get(0).getThumbnailSize());
+        // An unreadable file still counts as found: the user's choices are not overwritten.
+        Files.writeString(store.getFile(), "{ broken");
+        store.load();
+        assertTrue(store.lastLoadFoundFile());
     }
 
     @Test

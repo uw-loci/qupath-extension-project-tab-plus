@@ -16,6 +16,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Atomic write pattern adapted from qupath-extension-dialog-manager (Apache-2.0,
+// github.com/uw-loci/qupath-extension-dialog-manager), modified 2026-10/11.
+
 /**
  * Reads and writes {@code profiles.json}: a versioned list of display profiles, per user.
  * Writes go to a sibling temp file then an atomic move, so a crash mid-write cannot truncate
@@ -37,10 +40,19 @@ public final class ProfileStore {
 
     private final Path file;
     private final Object lock = new Object();
+    private volatile boolean lastLoadFoundFile;
 
     /** @param file the profiles file */
     public ProfileStore(Path file) {
         this.file = file;
+    }
+
+    /**
+     * @return whether the last {@link #load()} found the file on disk (readable or not); false
+     *         before the first load and on a first run, when the caller seeds the Default profile
+     */
+    public boolean lastLoadFoundFile() {
+        return lastLoadFoundFile;
     }
 
     /**
@@ -65,7 +77,8 @@ public final class ProfileStore {
     public List<DisplayProfile> load() {
         List<DisplayProfile> profiles = new ArrayList<>();
         synchronized (lock) {
-            if (Files.exists(file)) {
+            lastLoadFoundFile = Files.exists(file);
+            if (lastLoadFoundFile) {
                 try {
                     String json = Files.readString(file, StandardCharsets.UTF_8);
                     profiles.addAll(parse(json));

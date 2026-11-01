@@ -52,8 +52,6 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
@@ -89,6 +87,7 @@ import qupath.ext.projecttabplus.model.TreeBuilder;
 import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.common.ColorTools;
+import qupath.lib.common.GeneralTools;
 import qupath.lib.common.ThreadTools;
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.prefs.PathPrefs;
@@ -99,6 +98,10 @@ import qupath.lib.objects.hierarchy.PathObjectHierarchy;
 import qupath.lib.objects.hierarchy.events.PathObjectHierarchyListener;
 import qupath.lib.projects.Project;
 import qupath.lib.projects.ProjectImageEntry;
+
+// The delayed busy indicator (BUSY_DELAY, showBusy, hideBusy) is adapted from
+// qupath-extension-classify-object-subset (Apache-2.0,
+// github.com/uw-loci/qupath-extension-classify-object-subset), modified 2026-10/11.
 
 /**
  * The Project+ tab content: toolbar, busy strip, grouped tree, status line and search bar.
@@ -164,7 +167,14 @@ public final class ProjectTabPlusPane extends BorderPane {
     private ImageData<BufferedImage> currentImageData;
     private ObjectPresence livePresence;
     private final PauseTransition liveDebounce = new PauseTransition(LIVE_DEBOUNCE);
-    private final PathObjectHierarchyListener hierarchyListener = e -> liveDebounce.playFromStart();
+    // Plugins fire hierarchy events from worker threads; the debounce is an FX animation.
+    private final PathObjectHierarchyListener hierarchyListener = e -> {
+        if (Platform.isFxApplicationThread()) {
+            liveDebounce.playFromStart();
+        } else {
+            Platform.runLater(liveDebounce::playFromStart);
+        }
+    };
     private final PauseTransition changedPoll = new PauseTransition(Duration.seconds(2));
 
     // Controls
@@ -369,8 +379,10 @@ public final class ProjectTabPlusPane extends BorderPane {
 
         MenuItem removeCurrent = new MenuItem(Strings.get("menu.removeCurrent"));
         removeCurrent.setOnAction(e -> removeCurrentImage());
-        MenuItem jump = new MenuItem(Strings.get("menu.jumpToCurrent"));
-        jump.setAccelerator(new KeyCodeCombination(KeyCode.J, KeyCombination.SHORTCUT_DOWN));
+        // No accelerator: a MenuButton item's accelerator is registered scene-wide, and Ctrl+J
+        // is meant to act only while focus is inside the tab (installKeyboard). The chord is
+        // named in the item text instead.
+        MenuItem jump = new MenuItem(Strings.get(GeneralTools.isMac() ? "menu.jumpToCurrent.mac" : "menu.jumpToCurrent"));
         jump.setOnAction(e -> jumpToCurrent(true));
 
         CheckMenuItem showBuiltIn = new CheckMenuItem(Strings.get("menu.showBuiltInTab"));
@@ -512,12 +524,16 @@ public final class ProjectTabPlusPane extends BorderPane {
         searchBar.setPadding(new Insets(2, 4, 4, 4));
 
         bulkCount.setMinWidth(Region.USE_PREF_SIZE);
+        // The bar texts carry mnemonics (Alt+C, Alt+L, Alt+A); the chords are in installKeyboard.
         Button checkAll = new Button(Strings.get("bulk.checkAllShown"));
+        checkAll.setMnemonicParsing(true);
         checkAll.setTooltip(Tooltips.of(Strings.get("bulk.checkAllShown.tooltip")));
         checkAll.setOnAction(e -> checkAllShown());
         Button clear = new Button(Strings.get("bulk.clear"));
+        clear.setMnemonicParsing(true);
         clear.setTooltip(Tooltips.of(Strings.get("bulk.clear.tooltip")));
         clear.setOnAction(e -> checkedIds.clear());
+        bulkActions.setMnemonicParsing(true);
         bulkActions.setTooltip(Tooltips.of(Strings.get("bulk.actions.tooltip")));
         bulkActions.disableProperty().bind(Bindings.isEmpty(checkedIds));
         MenuItem remove = new MenuItem(Strings.get("bulk.action.remove"));
@@ -685,6 +701,10 @@ public final class ProjectTabPlusPane extends BorderPane {
             } else if (e.getCode() == KeyCode.D && e.isShortcutDown() && e.isShiftDown() && checkboxMode.get()) {
                 checkedIds.clear();
                 e.consume();
+            } else if (e.getCode() == KeyCode.N && e.isShortcutDown() && e.isShiftDown() && checkboxMode.get()) {
+                // Unassigned in QuPath 0.7.0's accelerator table (checked 2026-11-01).
+                checkAllShown();
+                e.consume();
             }
         });
     }
@@ -694,8 +714,11 @@ public final class ProjectTabPlusPane extends BorderPane {
     private void loadProfiles() {
         profiles.setAll(profileStore.load());
         DisplayProfile def = profiles.get(0);
-        if (def.getGrouping().isEmpty() && def.getFields().isEmpty()) {
+        if (!profileStore.lastLoadFoundFile()) {
+            // First run: seed Default with QuPath's own thumbnail size and write the file, so
+            // the size the user picks later is what every restart reads back.
             def.setThumbnailSize(quPathThumbnailSize());
+            persistProfiles();
         }
         savedProfile = def;
         liveProfile = def.copy();
@@ -788,18 +811,20 @@ public final class ProjectTabPlusPane extends BorderPane {
         setTransientStatus(Strings.format("status.profileSaved", savedProfile.getName()), false);
     }
 
-    /** Save the profile list to disk, reporting a failure as a notification. */
+    /**
+     * Save the profile list to disk at once, reporting a failure as a notification. This is the
+     * one deliberate disk write on the calling (FX) thread: the file is a few hundred bytes, and
+     * a write queued behind a long bulk job was lost when QuPath quit before the job ended.
+     */
     void persistProfiles() {
         List<DisplayProfile> snapshot = profiles.stream().map(DisplayProfile::copy).toList();
-        bulkExecutor.submit(() -> {
-            try {
-                profileStore.save(snapshot);
-            } catch (IOException e) {
-                logger.error("Could not write {}: {}", profileStore.getFile(), e.getMessage(), e);
-                Platform.runLater(() -> Dialogs.showErrorNotification(Strings.get("notify.title"),
-                        Strings.format("profile.saveError", e.getMessage())));
-            }
-        });
+        try {
+            profileStore.save(snapshot);
+        } catch (IOException e) {
+            logger.error("Could not write {}: {}", profileStore.getFile(), e.getMessage(), e);
+            Dialogs.showErrorNotification(Strings.get("notify.title"),
+                    Strings.format("profile.saveError", e.getMessage()));
+        }
     }
 
     /**
@@ -871,10 +896,8 @@ public final class ProjectTabPlusPane extends BorderPane {
             DisplayProfile target = profiles.stream().filter(p -> p.getName().equals(name)).findFirst()
                     .orElse(profiles.get(0));
             if (target == savedProfile && !profileModified.get()) {
-                applyProjectSortKeyToDefault(project);
                 coordinator.request(Reason.PROJECT);
             } else {
-                applyProjectSortKeyToDefault(project);
                 selectProfile(target, false);
             }
         } else {
@@ -883,19 +906,18 @@ public final class ProjectTabPlusPane extends BorderPane {
         coordinator.hookBuiltInTree(qupath.getAnalysisTabPane());
     }
 
-    /** The Default profile's first level follows the built-in tab's sort key when it has none. */
-    private void applyProjectSortKeyToDefault(Project<BufferedImage> project) {
-        DisplayProfile def = profiles.get(0);
-        if (!ProfileStore.DEFAULT_NAME.equals(def.getName()) || !def.getGrouping().isEmpty()) {
-            return;
+    /**
+     * The live grouping, with one transient exception: while the Default profile is selected and
+     * groups by nothing, the built-in tab's sort key ({@code _SORT_KEY}) is applied as its one
+     * level at build time. It is never written into the profile, so it cannot be saved by
+     * accident or carried to the next project.
+     */
+    private GroupingSpec effectiveGroupingSpec(Project<BufferedImage> project, boolean masked) {
+        GroupingSpec spec = liveProfile.groupingSpec();
+        if (spec.isFlat() && savedProfile != null && ProfileStore.DEFAULT_NAME.equals(savedProfile.getName())) {
+            spec = GroupingSpec.fromSortKey(project.getMetadata().get(SORT_KEY));
         }
-        GroupingSpec spec = GroupingSpec.fromSortKey(project.getMetadata().get(SORT_KEY));
-        if (!spec.isFlat()) {
-            def.setGroupingSpec(spec);
-            if (savedProfile == def) {
-                liveProfile.setGroupingSpec(spec);
-            }
-        }
+        return spec.effective(masked);
     }
 
     /** Refresh button and F5: forget failed thumbnails and summaries, then rebuild. */
@@ -953,7 +975,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         List<ProjectImageEntry<BufferedImage>> entries = project.getImageList();
         coordinator.rememberList(entries);
         boolean masked = PathPrefs.maskImageNamesProperty().get();
-        GroupingSpec spec = liveProfile.groupingSpec().effective(masked);
+        GroupingSpec spec = effectiveGroupingSpec(project, masked);
         EntryFilter filter = currentFilter();
         boolean needsType = spec.levels().stream().anyMatch(k -> k.builtin() == GroupingKey.Builtin.IMAGE_TYPE)
                 || liveProfile.fieldKeys().stream().anyMatch(k -> k.builtin() == GroupingKey.Builtin.IMAGE_TYPE);
@@ -961,13 +983,20 @@ public final class ProjectTabPlusPane extends BorderPane {
         String currentId = currentEntryId;
         ObjectPresence live = livePresence;
         String selectedId = selectedEntryId();
+        showBusy(Strings.get("busy.rebuilding"), -1, 0, false);
         treeExecutor.submit(() -> {
             try {
+                if (gen != generation.get()) {
+                    return; // a newer request is queued behind this one
+                }
                 if (sweepFirst) {
                     sweepSummaries(entries, gen);
                 }
                 List<ImageRow> rows = new ArrayList<>(entries.size());
                 for (ProjectImageEntry<BufferedImage> entry : entries) {
+                    if (gen != generation.get()) {
+                        return;
+                    }
                     ObjectPresence p = sweepFirst ? summaryReader.get(entry) : summaryReader.peek(entry.getID());
                     String type = p == null ? null : p.imageType();
                     rows.add(new ImageRow(EntryInfo.from(entry, type, this::isUriMissing), entry));
@@ -1003,12 +1032,16 @@ public final class ProjectTabPlusPane extends BorderPane {
                 });
                 if (!sweepFirst) {
                     summaryExecutor.submit(() -> {
-                        sweepSummaries(entries, gen);
-                        Platform.runLater(() -> {
-                            if (gen == generation.get()) {
-                                tree.refresh();
-                            }
-                        });
+                        try {
+                            sweepSummaries(entries, gen);
+                            Platform.runLater(() -> {
+                                if (gen == generation.get()) {
+                                    tree.refresh();
+                                }
+                            });
+                        } catch (RuntimeException e) {
+                            logger.error("Reading saved-data summaries failed: {}", e.getMessage(), e);
+                        }
                     });
                 }
             } catch (RuntimeException e) {
@@ -1052,6 +1085,7 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private void applyBuild(List<ImageRow> rows, TreeBuilder.BuiltTree built, Set<String> keys,
                             Map<String, Set<String>> values, String selectedId, EntryFilter filter) {
+        hideBusy();
         allRows = rows;
         lastBuilt = built;
         metadataKeys = keys;
@@ -1217,13 +1251,18 @@ public final class ProjectTabPlusPane extends BorderPane {
         }
         PathObjectHierarchy hierarchy = imageData.getHierarchy();
         summaryExecutor.submit(() -> {
-            ObjectPresence p = SummaryReader.fromHierarchy(hierarchy, imageData.getImageType(), imageData.isChanged());
-            Platform.runLater(() -> {
-                if (imageData == currentImageData) {
-                    livePresence = p;
-                    tree.refresh();
-                }
-            });
+            try {
+                ObjectPresence p = SummaryReader.fromHierarchy(hierarchy, imageData.getImageType(), imageData.isChanged());
+                Platform.runLater(() -> {
+                    if (imageData == currentImageData) {
+                        livePresence = p;
+                        tree.refresh();
+                    }
+                });
+            } catch (RuntimeException e) {
+                // A plugin may be filling the hierarchy while we walk it; the next event retries.
+                logger.error("Counting the open image's objects failed: {}", e.getMessage(), e);
+            }
         });
     }
 
@@ -1451,8 +1490,12 @@ public final class ProjectTabPlusPane extends BorderPane {
             if (summaryRequested.add(row.id())) {
                 ProjectImageEntry<BufferedImage> entry = row.entry();
                 summaryExecutor.submit(() -> {
-                    summaryReader.get(entry);
-                    Platform.runLater(tree::refresh);
+                    try {
+                        summaryReader.get(entry);
+                        Platform.runLater(tree::refresh);
+                    } catch (RuntimeException e) {
+                        logger.error("Reading the summary of entry {} failed: {}", entry.getID(), e.getMessage(), e);
+                    }
                 });
             }
             return ObjectPresence.UNKNOWN;
@@ -1644,8 +1687,12 @@ public final class ProjectTabPlusPane extends BorderPane {
     void countGroups(GroupingSpec spec, Consumer<List<Integer>> onDone) {
         List<ImageRow> rows = allRows;
         treeExecutor.submit(() -> {
-            List<Integer> counts = TreeBuilder.groupCounts(rows, spec);
-            Platform.runLater(() -> onDone.accept(counts));
+            try {
+                List<Integer> counts = TreeBuilder.groupCounts(rows, spec);
+                Platform.runLater(() -> onDone.accept(counts));
+            } catch (RuntimeException e) {
+                logger.error("Counting groups failed: {}", e.getMessage(), e);
+            }
         });
     }
 
