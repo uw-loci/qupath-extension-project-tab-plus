@@ -20,7 +20,6 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -95,6 +94,10 @@ final class DisplaySettingsDialog {
         levels.setPrefHeight(96);
         levels.setMinWidth(60);
         levels.setCellFactory(lv -> new ListCell<>() {
+            {
+                setMnemonicParsing(false);
+            }
+
             @Override
             protected void updateItem(GroupingKey item, boolean empty) {
                 super.updateItem(item, empty);
@@ -311,6 +314,8 @@ final class DisplaySettingsDialog {
 
     private CheckBox fieldBox(GroupingKey key, String text, boolean selected) {
         CheckBox cb = new CheckBox(text);
+        // Metadata keys such as acquired_on_microscope keep their underscores (no mnemonics).
+        cb.setMnemonicParsing(false);
         cb.setUserData(key);
         cb.setSelected(selected);
         cb.setTooltip(Tooltips.of(Strings.get("settings.field.tooltip")));

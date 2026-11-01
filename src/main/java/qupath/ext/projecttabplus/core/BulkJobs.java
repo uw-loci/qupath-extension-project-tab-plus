@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.zip.GZIPOutputStream;
+import javax.swing.SwingUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.projecttabplus.ui.Strings;
@@ -168,10 +170,39 @@ public final class BulkJobs {
         return new Outcome(entries.size(), done, 0, 0, failures, canceled);
     }
 
-    /** @return true when the entry's data folder still exists after a removal that asked for the trash */
+    /**
+     * Whether the entry's data folder still exists after a removal that asked for the trash.
+     * QuPath hands the move to the Swing event thread when it is called from another thread, so
+     * that thread is flushed first; checking at once would see the folder before it has gone.
+     *
+     * @param entry the removed entry
+     * @return true when the folder is still on disk
+     */
     public static boolean dataFolderRemains(ProjectImageEntry<BufferedImage> entry) {
         Path path = entry.getEntryPath();
-        return path != null && Files.exists(path);
+        if (path == null) {
+            return false;
+        }
+        flushSwingEventThread();
+        return Files.exists(path);
+    }
+
+    /**
+     * Return once every task already queued on the Swing event thread has run. Does nothing on
+     * that thread itself; an interruption or a failing queued task is logged and falls through.
+     */
+    static void flushSwingEventThread() {
+        if (SwingUtilities.isEventDispatchThread()) {
+            return;
+        }
+        try {
+            SwingUtilities.invokeAndWait(() -> { });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.debug("Interrupted while waiting for the Swing event thread");
+        } catch (InvocationTargetException e) {
+            logger.debug("A queued Swing task failed: {}", e.getCause() == null ? e : e.getCause());
+        }
     }
 
     /**

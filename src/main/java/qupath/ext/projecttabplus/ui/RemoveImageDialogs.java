@@ -124,6 +124,7 @@ public final class RemoveImageDialogs {
      */
     public static boolean showMoveFileToTrash(Window owner, Path path, long fileSize, long modifiedMillis) {
         Label pathLabel = new Label(path.toString());
+        pathLabel.setMnemonicParsing(false);
         pathLabel.setWrapText(true);
         String modified = modifiedMillis < 0 ? "-"
                 : MODIFIED.format(Instant.ofEpochMilli(modifiedMillis).atZone(ZoneId.systemDefault()));
@@ -160,6 +161,7 @@ public final class RemoveImageDialogs {
      */
     public static boolean showTrashFailed(Window owner, Path path, String reason) {
         Label pathLabel = new Label(path.toString());
+        pathLabel.setMnemonicParsing(false);
         pathLabel.setWrapText(true);
         Label reasonLabel = new Label(Strings.format("d3.reason", reason));
         reasonLabel.setWrapText(true);

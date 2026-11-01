@@ -263,6 +263,10 @@ public final class ProjectTabPlusPane extends BorderPane {
         HBox.setHgrow(profileCombo, Priority.ALWAYS);
         profileCombo.setTooltip(Tooltips.of(Strings.get("toolbar.profile.tooltip")));
         profileCombo.setCellFactory(lv -> new ListCell<>() {
+            {
+                setMnemonicParsing(false);
+            }
+
             @Override
             protected void updateItem(DisplayProfile item, boolean empty) {
                 super.updateItem(item, empty);
@@ -270,6 +274,10 @@ public final class ProjectTabPlusPane extends BorderPane {
             }
         });
         profileCombo.setButtonCell(new ListCell<>() {
+            {
+                setMnemonicParsing(false);
+            }
+
             @Override
             protected void updateItem(DisplayProfile item, boolean empty) {
                 super.updateItem(item, empty);
@@ -1662,14 +1670,14 @@ public final class ProjectTabPlusPane extends BorderPane {
     }
 
     /**
-     * Show the busy strip (after a short delay so quick jobs never flash it).
+     * Show the busy strip (after a short delay so quick jobs never flash it). FX thread only.
      *
      * @param text the strip text
      * @param done progress numerator, or -1 for indeterminate
      * @param total progress denominator
      * @param cancelable whether the Cancel button is shown
      */
-    void showBusy(String text, int done, int total, boolean cancelable) {
+    public void showBusy(String text, int done, int total, boolean cancelable) {
         busyLabel.setText(text);
         busyBar.setProgress(done < 0 || total <= 0 ? ProgressBar.INDETERMINATE_PROGRESS : (double) done / total);
         busyCancel.setVisible(cancelable);
@@ -1679,8 +1687,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         }
     }
 
-    /** Hide the busy strip. */
-    void hideBusy() {
+    /** Hide the busy strip. FX thread only. */
+    public void hideBusy() {
         busyDelay.stop();
         busyStrip.setVisible(false);
         busyStrip.setManaged(false);

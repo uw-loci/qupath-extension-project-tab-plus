@@ -94,6 +94,10 @@ final class EntryTreeCell extends TreeCell<Row> {
         Tooltip.install(missingIcon, Tooltips.of(Strings.get("row.missingFile")));
         Tooltip.install(failedIcon, Tooltips.of(Strings.get("row.thumbnailFailed")));
 
+        // Names, keys and values are shown verbatim: an underscore is never a mnemonic marker.
+        for (Label l : new Label[] {name, fields, groupKey, groupText, groupChips}) {
+            l.setMnemonicParsing(false);
+        }
         name.setMinWidth(0);
         name.setMaxWidth(Double.MAX_VALUE);
         name.setTextOverrun(OverrunStyle.ELLIPSIS);

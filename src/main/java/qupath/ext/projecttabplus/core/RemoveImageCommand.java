@@ -116,6 +116,8 @@ public final class RemoveImageCommand {
         String name = entry.getImageName();
         String id = entry.getID();
         RemoveChoice c = choice.get();
+        // Closing a Bio-Formats image can take many seconds, so the strip shows what is going on.
+        pane.showBusy(Strings.format("busy.removingCurrent", name), -1, 0, false);
         pane.bulkExecutor().submit(() -> {
             long start = System.currentTimeMillis();
             logger.info("Project+ remove current image started: entry {}, data folder to trash: {}, file to trash: {}",
@@ -144,7 +146,10 @@ public final class RemoveImageCommand {
                         if (!removeAnyway) {
                             logger.info("Project+ remove current image canceled: entry {}, file kept ({})",
                                     id, result.outcome());
-                            Platform.runLater(() -> pane.setTransientStatus(Strings.get("status.removalCanceled"), true));
+                            Platform.runLater(() -> {
+                                pane.hideBusy();
+                                pane.setTransientStatus(Strings.get("status.removalCanceled"), true);
+                            });
                             return;
                         }
                         fileStatus = Strings.format("status.removedFileKept", name, path);
@@ -160,8 +165,10 @@ public final class RemoveImageCommand {
                 project.syncChanges();
             } catch (IOException | RuntimeException e) {
                 logger.error("Could not remove entry {}: {}", id, e.getMessage(), e);
-                Platform.runLater(() -> Dialogs.showErrorNotification(Strings.get("notify.title"),
-                        Strings.get("notify.removeFailed")));
+                Platform.runLater(() -> {
+                    pane.hideBusy();
+                    Dialogs.showErrorNotification(Strings.get("notify.title"), Strings.get("notify.removeFailed"));
+                });
                 return;
             }
             String dataOutcome = "kept by choice";
@@ -183,6 +190,7 @@ public final class RemoveImageCommand {
             pane.checkedIds().remove(id);
             String finalStatus = status;
             Platform.runLater(() -> {
+                pane.hideBusy();
                 qupath.refreshProject();
                 pane.refreshAfterChange();
                 pane.setTransientStatus(finalStatus, false);

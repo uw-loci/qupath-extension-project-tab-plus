@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import qupath.ext.projecttabplus.model.FakeEntry;
@@ -39,6 +41,38 @@ class BulkJobsTest {
         assertEquals("corrupt.svs", f.name());
         assertEquals("data file could not be read; not cleared (see log)", f.reason());
         assertEquals(Strings.get("reason.clearDataUnreadable"), f.reason());
+    }
+
+    @Test
+    void flushSwingEventThreadReturnsAfterTheQueuedTasksRan() {
+        AtomicBoolean ran = new AtomicBoolean();
+        SwingUtilities.invokeLater(() -> {
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            ran.set(true);
+        });
+        BulkJobs.flushSwingEventThread();
+        assertTrue(ran.get());
+    }
+
+    @Test
+    void dataFolderRemainsSeesAFolderRemovedByAQueuedSwingTask() throws Exception {
+        // Windows QuPath moves the folder to the Recycle Bin on the Swing event thread, later.
+        Path folder = Files.createDirectories(dir.resolve("entry-1"));
+        FakeEntry entry = new FakeEntry("1", "a").entryPath(folder);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                Thread.sleep(150);
+                Files.delete(folder);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        assertFalse(BulkJobs.dataFolderRemains(entry));
+        assertFalse(BulkJobs.dataFolderRemains(new FakeEntry("2", "b")));
     }
 
     @Test
