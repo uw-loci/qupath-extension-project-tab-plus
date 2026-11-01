@@ -49,8 +49,12 @@ worth the screen space.
 
 It never:
 
-- deletes a file permanently. The only file deletion it performs is a move to the operating
-  system trash, from where the file can be restored;
+- deletes a file permanently, on a local disk. The only file deletion it performs is a move
+  to the operating system trash, from where the file can be restored. Files on a network
+  location (a `\\server\share` path) are refused, because such locations have no trash; a
+  mapped network drive cannot be told apart from a local disk, and Windows has no Recycle Bin
+  for it, so a file there may be deleted outright. See the user guide before using the file
+  option on a share;
 - changes the built-in Project tab's data or behavior. It can hide that tab and show it
   again; nothing else;
 - moves image files in bulk. Bulk removal takes entries out of the project and leaves every
@@ -78,13 +82,19 @@ on the fly -- restart it either way.
 2. **Click the Project+ tab.** It sits in the panel on the left of the QuPath window, right
    next to the built-in **Project** tab. If you do not see it, the extension is not installed
    or QuPath has not been restarted since you installed it.
-3. **Choose how to group.** Click the **Group by** button in the tab's toolbar. In the
+3. **Choose how to group.** Click the **Group by** button in the tab's toolbar: the grid
+   icon, second from the left in the second row; its tooltip reads `Choose which metadata
+   keys group the list, and in what order.` In the
    **Project+ - Display settings** dialog, use **Add level** to pick one or more *metadata
    keys*, for example `Patient` then `Stain`. A metadata key is a label-and-value pair
    attached to an image in the project, such as `Stain = HE`; you add one by right-clicking
-   an image and choosing **Add metadata...**. Images with no value for a key land
-   under **(Unassigned)**. On first open, Project+ starts from the key the built-in tab was
-   already sorting by, if any.
+   an image and choosing **Add metadata...**. Group rows read as the key, the value and the
+   number of images under them, so `Patient: 12 (2)` is patient 12 with two images. Images
+   with no value for a key land under **(Unassigned)**. On first open, Project+ starts from
+   the key the built-in tab was already sorting by, if any. With the default **Expand on
+   load** of *first level*, a two-level grouping hides every image under a closed
+   second-level group: expand a group to reach its images, or set **Expand on load** to *all*
+   while you learn the tree.
 4. **Open an image and find it again.** Double-click any entry to open it in the viewer. Its
    row is now tinted, bold and marked `[open]`. Scroll anywhere, then click
    **Jump to current image** in the tab's toolbar (or press Ctrl+J): the tree expands and
@@ -97,16 +107,19 @@ That is the everyday loop. The [user guide](docs/user-guide.md) covers the rest:
 indicators on each entry, removing the current image, and checkbox mode for acting on many
 entries at once.
 
-![The Project+ tab grouped two levels deep, with the current image marked](images/tab-grouped.png)
+![The Project+ tab at 300 pixels wide, light theme, profile By patient and stain, grouped two levels deep. Group rows read Patient: 12 (2), Stain: HE (1), Stain: PPM (1), Patient: 13 (2); four image rows, each thumbnail with a red top edge and a teal right edge; the toolbar shows the pin, grid, checkbox and refresh icons.](images/tab-grouped.png)
 
-*Screenshots are added in Phase 3 of the build; the image above is a placeholder reference.*
+*The Project+ tab grouped by `Patient` then `Stain`, under a saved profile. Each group row
+names its key and value and the number of images under it. The red top edge and teal right
+edge on each thumbnail mean that image's saved data holds annotations and detections. No
+image is open, so the Jump button (the pin) is greyed.*
 
 ## Where things are
 
 | What | Where |
 |---|---|
-| The **Project+** tab | QuPath's analysis pane, immediately right of the built-in **Project** tab. Drag it out to undock it into its own window. |
-| Profile combo and gear menu | First toolbar row inside the tab. The gear holds profile commands, **Edit display settings...**, **Thumbnail size**, **Indicators**, **Create project...** / **Open project...** / **Add images...**, **Remove current image...**, **Jump to current image**, **Show built-in Project tab** and **Indicator legend...**. |
+| The **Project+** tab | QuPath's analysis pane, immediately right of the built-in **Project** tab. Drag it out to undock it into its own window. One more tab makes the pane's tab row overflow at the default width, so **Workflow** moves into the dropdown arrow at the right end of the row. Widen the pane, or hide the built-in tab (see below), to get the room back. |
+| Profile combo and gear menu | First toolbar row inside the tab. The gear holds profile commands, **Edit display settings...**, **Thumbnail size**, **Indicators**, **Create project...** / **Open project...** / **Add images...**, **Remove current image...**, **Jump to current image (Ctrl+J)** (`Cmd+J` on macOS), **Show built-in Project tab** and **Indicator legend...**. |
 | Jump, Group by, Checkbox mode, Refresh, Legend buttons | Second toolbar row. |
 | Search box and key/value filter | Bottom of the tab, where the built-in tab keeps its filter. |
 | Right-click menu | Any row: the built-in tab's items plus **Jump to current image**, **Remove current image...**, **Check** / **Uncheck** and **Group by...**. |
@@ -135,9 +148,10 @@ built-in tab also offers.
 
 ## Reporting a problem
 
-File an issue on this repository's issue tracker, saying which platform you are on and which
-version of QuPath you are running, and paste the lines from **View > Show log** around the
-time of the problem.
+File an issue at <https://github.com/uw-loci/qupath-extension-project-tab-plus/issues>. The
+bug template asks for your platform, the QuPath version, the extension version and the lines
+from **View > Show log** around the time of the problem. Release notes are in
+[CHANGELOG.md](CHANGELOG.md).
 
 **Built and tested on Linux; Windows and macOS not yet verified for this release.** The two
 places most likely to differ are the move-to-trash step (Linux desktops and WSL often report
@@ -161,8 +175,10 @@ by alexmpdx (GPL-3.0) adds a current-image highlight, "Scroll to current image" 
 remove-current-image features were inspired by it and were written fresh against the QuPath
 APIs rather than copied. The two extensions coexist; see above.
 
-**Code lifted with attribution.** The repository is GPL-3.0, so each of these is allowed;
-every Apache-2.0 lift keeps its license header in the file.
+**Code lifted with attribution.** The repository is GPL-3.0, so each of these is allowed.
+None of the source repositories puts a license header in its files, so none was stripped;
+instead, each lifted file here opens with a two-line provenance comment naming the source
+repository, its license and the date it was modified for Project+.
 
 - [`uw-loci/qupath-extension-project-metadata-browser`](https://github.com/uw-loci/qupath-extension-project-metadata-browser)
   (GPL-3.0): the project model, the metadata-key union and the build layout.
@@ -184,6 +200,9 @@ Project+ builds on.
 ## License
 
 [GNU General Public License v3.0](LICENSE)
+
+Copyright (C) 2026 Michael S. Nelson, Laboratory for Optical and Computational
+Instrumentation (LOCI), University of Wisconsin-Madison.
 
 This extension depends on [QuPath](https://qupath.github.io), which is licensed under GPL v3,
 so the running combination of QuPath + this extension is itself GPL v3. Licensing under the

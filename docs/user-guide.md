@@ -48,21 +48,30 @@ to turn that off).
 
 - Row 1: the **profile combo** (which display profile is in use; a trailing ` *` means you
   have changed something since it was saved) and the **gear** menu button.
-- Row 2: **Jump to current image**, **Group by**, **Checkbox mode**, **Refresh**, and, at the
-  right, the **Legend** button (a question mark) that explains the indicators and the search
-  keywords.
+- Row 2: **Jump to current image** (a pin), **Group by** (a grid), **Checkbox mode**,
+  **Refresh** (two arrows), and, at the right, the **Legend** button (a question mark) that
+  explains the indicators and the search keywords. The buttons are icons; hover one for its
+  name.
+
+![The Project+ tab at 300 pixels wide, light theme, profile By patient and stain, grouped two levels deep. Group rows read Patient: 12 (2), Stain: HE (1), Stain: PPM (1), Patient: 13 (2); four image rows, each thumbnail with a red top edge and a teal right edge; the toolbar shows the pin, grid, checkbox and refresh icons.](../images/tab-grouped.png)
+
+*The tab grouped by `Patient` then `Stain`. Each group row names its key and value and the
+number of images under it. The red top edge and teal right edge on each thumbnail show that
+its saved data holds annotations and detections. No image is open, so the Jump button is
+greyed; hover it and a tooltip says `No image is open.`*
 
 The gear menu holds, in order: **Save profile**, **Save profile as...**, **Rename profile...**,
 **Delete profile...**, **Manage profiles...**; **Edit display settings...**, **Thumbnail size**
 (Hidden / Small / Medium / Large), **Indicators** (Thumbnail edges / Badges / Off);
 **Create project...**, **Open project...**, **Add images...**; **Remove current image...**,
-**Jump to current image**; **Show built-in Project tab** (a check item) and
-**Indicator legend...**.
+**Jump to current image (Ctrl+J)** (`Jump to current image (Cmd+J)` on macOS); **Show
+built-in Project tab** (a check item) and **Indicator legend...**.
 
 **First look.** On first open the tree is grouped by the key the built-in tab was sorting by,
 if one was set for this project; otherwise it is a flat list, like the built-in tab. Group
-rows read as the value followed by the number of images under them, so a patient with three
-stains and eight images reads `Patient 12 (8)`. Missing values land under **(Unassigned)**; an
+rows read as the key, the value and the number of images under them, so a patient with three
+stains and eight images reads `Patient: 12 (8)`, and the stain groups under it read
+`Stain: HE (3)`. Missing values land under **(Unassigned)**; an
 entry whose file location cannot be read lands under **Undefined**. Thumbnails and indicators
 fill in after the tree appears; they are read in the background, and a busy strip under the
 toolbar reads `Loading saved-data summaries 120 of 412` while that takes longer than a moment.
@@ -84,8 +93,9 @@ is visible.
 **The status line**, just above the search box, reads `412 images`, `412 images, 1 open`,
 `38 of 412 images shown` while a search is in force, or `412 images, 3 checked` in checkbox
 mode. Messages about an action you just took (`Jumped to liver_12_HE_0.svs`,
-`Refreshed: 412 images`) show there for four seconds. Click the status line to clear the
-search.
+`Refreshed: 412 images`) show there for four seconds. A warning (for example a profile that
+groups by a key this project lacks) stays for eight seconds and may wrap onto a second line
+in a narrow pane; the totals always fit on one. Click the status line to clear the search.
 
 **The built-in Project tab is untouched.** Everything it does keeps working whether it is
 shown or hidden; see [Hide the built-in Project tab](#hide-the-built-in-project-tab).
@@ -110,9 +120,16 @@ shown or hidden; see [Hide the built-in Project tab](#hide-the-built-in-project-
 4. Read the line under the list, `Groups: 12 > 31 > 96 images in 112 leaves`, before you look
    at the tree: it tells you whether you just made 400 groups of one image.
 5. Choose **Expand on load**: all, first level, or none. This also applies whenever the
-   grouping changes.
+   grouping changes. With *first level* and two or more levels, every image sits under a
+   closed inner group right after the tree builds; expand a group to reach its images, or
+   choose *all* while you learn the tree.
 6. Click **Save to profile** to keep the setup in the selected profile, or **Close** to keep
    the live state without saving it (the profile combo shows ` *` until you save).
+
+![The Project+ Display settings dialog, light theme. Grouping lists 1. Patient and 2. Stain with Add level, Remove, Up and Down buttons; the count line reads Groups: 2 > 4 > 4 images in 4 leaves; Expand on load is set to all; Fields shown under the name has Scanner and Stain ticked; Appearance shows Thumbnail size set to Small; Save to profile and Close buttons at the bottom.](../images/display-settings.png)
+
+*The display settings dialog with all three sections open: two grouping levels, the group
+count line, two fields ticked, and the thumbnail size radios.*
 
 Notes:
 
@@ -145,15 +162,18 @@ drawn.
 
 1. Open any image (double-click an entry, use the built-in tab, or **File > Open...**).
 2. Click **Jump to current image** in the toolbar, press Ctrl+J with focus in the tab, or
-   choose **Jump to current image** from the gear or the right-click menu.
+   choose **Jump to current image (Ctrl+J)** from the gear menu or **Jump to current image**
+   from the right-click menu. The chord in the gear item's text is a reminder, not a global
+   shortcut: Ctrl+J acts only with focus in the tab.
 3. The tree expands every group above the entry, selects it and scrolls it into view. The
    status line reads `Jumped to <name>`.
 
 Notes:
 
-- The button is disabled when no image is open (tooltip `No image is open.`) or when the open
-  image is not an entry of this project, for example a file opened with **File > Open...**
-  (tooltip `The current image is not in this project.`).
+- The button is disabled when no image is open or when the open image is not an entry of
+  this project, for example a file opened with **File > Open...**. Hover the disabled button
+  and a tooltip says which: `No image is open.` or
+  `The current image is not in this project.`
 - If a search or key/value filter currently hides the entry, Jump **clears the search text and
   both filter combos**, rebuilds the tree and then jumps. The status line says so, in the
   warning color: `Search cleared to show <name>`. The automatic reselect that happens whenever
@@ -192,9 +212,16 @@ Notes:
   everything under **(Unassigned)** and the status line warns
   `Profile "<name>" groups by "Scanner", which this project does not have`.
 - The last profile you used is remembered in two places: for you, in QuPath's preferences,
-  and for the project, in its metadata, so a shared project reopens the way it was left. When
-  a project opens, its own remembered profile wins; otherwise your last-used one; otherwise
+  and for the project, in its metadata (the profile name as you typed it, under the key
+  `_PROJECT_TAB_PLUS_PROFILE`), so a shared project reopens the way it was left. When a
+  project opens, its own remembered profile wins; otherwise your last-used one; otherwise
   **Default**.
+- Only the profile's *name* travels with a shared project. Its body (the grouping and
+  settings) is in your own profiles file, so a colleague who opens the project on a machine
+  without that profile gets **Default** and the status line warns, in the warning color,
+  `Profile "<name>" is not on this machine; showing Default`. Copy the profiles file to the
+  other machine, or save the profile there under the same name. Storing the profile body in
+  the project is planned for a later release.
 - Unsaved profile changes are dropped silently when you quit QuPath. Quitting is never delayed
   by a profile prompt.
 
@@ -256,12 +283,16 @@ Notes:
   again.
 - If the summary exists but cannot be read, the tooltip says
   `Saved-data summary could not be read; see log`.
+- There is no way yet to save these counts as a table. A project-wide summary export (one
+  row per image with its metadata and counts) is planned for a later release; until then
+  the Project Metadata Browser extension exports the metadata, and the counts stay on
+  screen.
 
 ### Search and filter
 
-The search box is at the bottom of the tab, where the built-in tab keeps its filter. Press
-Ctrl+F (Cmd+F on macOS) with focus in the tab to go to it; Escape clears it and returns focus
-to the tree. The key and value combos next to it (on a second line in a narrow pane) narrow
+The search box is at the bottom of the tab, where the built-in tab keeps its filter; its
+prompt reads `Search or key=value`. Press Ctrl+F (Cmd+F on macOS) with focus in the tab to go
+to it; Escape clears it and returns focus to the tree. The key and value combos next to it (on a second line in a narrow pane) narrow
 the list further, and all three conditions apply together.
 
 Syntax of the search box:
@@ -297,14 +328,19 @@ The built-in tab's **Remove image...** acts on the *selected* rows; this command
      **unticked by default**. Left unticked, the entry's `data/<id>` folder stays in the
      project's data directory on disk after the entry is gone.
    - `Also move the image FILE to the trash`, unticked by default, with the file's path and
-     size under it. When the file is not eligible the box is disabled and the line under it
-     says why: `Cannot offer file deletion: this .vsi image has companion files that QuPath
-     does not list.`, `Cannot offer file deletion: 3 other entries in this project use the
-     same file.`, `Cannot offer file deletion: the file was not found.`, `Cannot offer file
-     deletion: the image is not a local file.` or `Cannot offer file deletion: the image is
-     spread over several files.`
-3. Click **Remove**. If the image has unsaved changes, QuPath asks whether to save them, exactly
-   as when you close an image; **Cancel** there cancels the whole removal (status
+     size under it on one line (a long path is shortened in the middle; hover it for the
+     whole path). While **Mask image names** is on that line reads
+     `In folder <folder>  (<size>)` instead, so the dialog does not print the name it is
+     hiding. When the file is not
+     eligible the box is disabled and the line under it says why: `Cannot offer file
+     deletion: this .vsi image has companion files that QuPath does not list.`, `Cannot offer
+     file deletion: 3 other entries in this project use the same file.`, `Cannot offer file
+     deletion: the file was not found.`, `Cannot offer file deletion: the image is not a
+     local file.`, `Cannot offer file deletion: the image is spread over several files.` or
+     `Cannot offer file deletion: the file is on a network location, which has no trash.`
+3. Click **Remove**. **Cancel** is the default button, so Enter and Escape both leave the
+   project as it is. If the image has unsaved changes, QuPath asks whether to save them,
+   exactly as when you close an image; **Cancel** there cancels the whole removal (status
    `Removal canceled`).
 4. If you ticked the file box, a **second, separate** confirmation,
    **Project+ - Move image file to trash**, shows the path, size and modification date and
@@ -313,13 +349,26 @@ The built-in tab's **Remove image...** acts on the *selected* rows; this command
    `QuPath cannot tell whether another project uses this file.`
 5. The entry leaves the project and both Project tabs refresh. The status line reads
    `Removed <name> from the project`, `Removed <name>; file moved to trash` or
-   `Removed <name>; file kept at <path>`.
+   `Removed <name>; file kept at <path>`. If you ticked the saved-data box and the folder is
+   still on disk afterwards (a desktop with no trash support), the status line reads
+   `Removed <name>; data folder kept at <path>`. If the removal itself fails, a notification
+   reads `The image could not be removed from the project; see the log (View > Show log).`
+   and the entry stays.
 
 Notes:
 
-- **Trash, never permanent.** The file goes to the operating system's trash (Recycle Bin on
-  Windows, Trash on macOS, the desktop trash on Linux) and can be restored from there.
-  Project+ has no permanent-delete path at all.
+- **Trash, never permanent, on a local disk.** The file goes to the operating system's trash
+  (Recycle Bin on Windows, Trash on macOS, the desktop trash on Linux) and can be restored
+  from there. Project+ has no permanent-delete path at all. The qualifier matters on
+  **network locations**: a path of the form `\\server\share\...` has no trash, so the file
+  box is refused with `Cannot offer file deletion: the file is on a network location, which
+  has no trash.` A **mapped network drive** (`S:\...`) looks like a local disk to QuPath and
+  cannot be told apart from one, and Windows has no Recycle Bin for it, so a file there may
+  be deleted outright by the operating system when you confirm the move. Do not use the file
+  option on a mapped drive unless you are willing to lose the file. The same applies to the
+  saved-data box in this dialog and in bulk removal when the project itself is on a share:
+  the data folder is handed to the operating system's trash, and a share has none. The
+  Windows share behavior has not been tested by the team.
 - **Only single-file images are offered.** A file is eligible only when the entry has exactly
   one local file, the file exists, its type is on the single-file list (`.svs`, `.ndpi`,
   `.scn`, `.bif`, `.qptiff`, plain `.tif` / `.tiff`, `.jpg`, `.png`), and no other entry in
@@ -342,8 +391,17 @@ Notes:
    box with the count (`3 of 412 checked`), **Check all shown**, **Clear** and the **Actions**
    menu.
 2. Check images by hand (click the box, or press Space on the focused row), or narrow the
-   list with the search box and the key/value combos and click **Check all shown**. The
-   right-click menu's **Check** / **Uncheck** act on the selected rows.
+   list with the search box and the key/value combos and click **Check all shown** (or press
+   Ctrl+Shift+N with focus in the tab). The right-click menu's **Check** / **Uncheck** act on
+   the selected rows.
+
+![The Project+ tab in checkbox mode, light theme. Every group row and image row has a ticked checkbox; the status line reads 3 images, 1 open, 3 checked; the bar below it reads 3 of 3 checked with Check all shown, Clear and Actions.](../images/checkbox-mode.png)
+
+*Checkbox mode with every image checked. The bar above the search box shows the count, the
+Check all shown and Clear buttons and the Actions menu. The empty middle of the tab is
+cropped out. This capture is from an earlier build: the toolbar's checkbox-mode toggle now
+shows a checkbox glyph instead of the red S, and group rows now name their key
+(`Patient: 12 (2)`).*
 3. Clear the search; the checks stay. Checks survive scrolling, regrouping, refresh and
    leaving checkbox mode; they are dropped only for entries that leave the project, and the
    whole set is cleared when you close the project. While the mode is off the status line
@@ -352,8 +410,10 @@ Notes:
 4. Selection (the blue row) and checked (the box) are independent, as in a mail client.
 
 **Actions** is disabled until something is checked. It holds **Remove from project...**,
-**Clear saved data...**, **Export GeoJSON...** and, when exactly one image is checked,
-**Open image**.
+**Clear saved data...**, **Export GeoJSON...** and **Open image (exactly one checked)**,
+which is enabled only when exactly one image is checked. On Windows and Linux the three bar
+controls have mnemonics: Alt+C presses **Check all shown**, Alt+L **Clear**, Alt+A opens
+**Actions**.
 
 **Remove checked images from the project**
 
@@ -363,11 +423,14 @@ Notes:
    grids) to the trash`, unticked by default. The dialog states
    `Image files are never deleted by bulk removal.`
 2. If some are open, the dialog says they will be closed first and that you will be asked to
-   save any changes. Click **Remove <N> images**. Each open image is closed with QuPath's
-   usual save prompt; **Cancel** on any of them stops the whole operation before anything is
-   removed (status `Removal canceled; nothing was removed`).
+   save any changes. **Cancel** is the default button; click **Remove <N> images** to go
+   ahead. Each open image is closed with QuPath's usual save prompt; **Cancel** on any of
+   them stops the whole operation before anything is removed (status
+   `Removal canceled; nothing was removed`).
 3. Both Project tabs refresh and the status line reads `Removed <N> images`. Failures open
-   **Project+ - Removal finished with errors** with one line per image.
+   **Project+ - Removal finished with errors** with one line per image,
+   `<name>: could not be removed (see log)` or `<name>: project file could not be saved (see
+   log)`; the full exception is in the log (**View > Show log**).
 
 **Clear saved data of checked images**
 
@@ -377,51 +440,114 @@ Notes:
    settings, metadata and descriptions`), lists the names with `(open)` and
    `(no saved data, skipped)` marks, and summarizes how many will be skipped and how many are
    open and will be closed first. Its last line, `This cannot be undone: QuPath deletes its
-   data.qpdata.bkp backup as soon as the new file is written.`, means what it says.
+   data.qpdata.bkp backup as soon as the new file is written.`, means what it says, and the
+   dialog suggests exporting to GeoJSON first if you might need the objects again.
 2. **Cancel** is the default button; click **Clear saved data** to go ahead. Open images are
    closed first through QuPath's usual save prompt; **Cancel** on any of them stops the job
    before anything is cleared.
 3. The busy strip reads `Clearing saved data 4 of 12` with a **Cancel** button that stops after
    the current image; images already cleared stay cleared. The status line ends with
    `Cleared saved data for 9 images (3 skipped)`; failures open
-   **Project+ - Clearing finished with errors**.
+   **Project+ - Clearing finished with errors**, one line per image with one of three
+   reasons: `data file could not be read; not cleared (see log)` (the entry is left
+   untouched, never overwritten with an empty file), `image not reachable; not cleared (see
+   log)` (the image file is missing or unmounted, which QuPath needs to open the data) or
+   `could not save (see log)` (the data was read and cleared but the new file could not be
+   written, for example on a full disk or a read-only share).
 
 Note: **clearing cannot be undone.** The dialog says so: `This cannot be undone: QuPath
 deletes its data.qpdata.bkp backup as soon as the new file is written.` Project+ offers no
-restore action. If you might need the objects again, export them to GeoJSON first.
+restore action. The body ends `If you might need the objects again, export them to GeoJSON
+first.`, and that is the advice.
 
 **Export the objects of checked images to GeoJSON**
 
 1. **Actions > Export GeoJSON...** opens **Project+ - Export GeoJSON for <N> images**. Choose
    an **Output folder** (type a path or **Browse...**); **Export** stays disabled until the
-   folder exists and is writable, and the reason (`Folder does not exist` / `Folder is not
-   writable`) shows under the field.
-2. Options: **Compress (.geojson.gz)** (ticked by default; QuPath reads both),
-   **Pretty-print JSON** (larger files, easier to read) and **Exclude measurements** (smaller
-   files; classifications and shapes are kept).
+   folder exists and is writable, and the reason shows under the field:
+   `Folder does not exist. Create it, or click Browse... to pick one.` or
+   `Folder is not writable. Pick another folder.`
+2. Options: **Compress (.geojson.gz)** (unticked by default, like QuPath's own export; QuPath
+   reads both), **Pretty-print JSON** (larger files, easier to read) and
+   **Exclude measurements** (smaller files; classifications and shapes are kept). The four
+   choices (folder and the three boxes) are remembered between sessions. A line above the
+   options reads `One file per image: <image name>.geojson` (`.geojson.gz` with Compress
+   ticked, `<entry ID>` while names are masked), and another, `An export-manifest.json beside
+   the files records the options, versions and one line per file.`
 3. The dialog says how many checked images have no saved data and will produce no file,
-   whether an image is open with unsaved changes, and, when **Mask image names** is on, that
-   the file names will be masked too.
+   whether an image is open with unsaved changes, and, when **Mask image names** is on,
+   `Image names are masked, so files are named by entry ID and the manifest lists no image
+   names.`
 4. Click **Export**. One file per image, `<image name>.geojson` (or `.geojson.gz`), with
-   characters that are not valid in file names removed and ` (<entry ID>)` added when two
-   entries would produce the same name. If files already exist,
-   **Project+ - Files already exist** reports `<k> of <N> files already exist in this folder.`
-   with **Overwrite**, **Skip existing** (default) and **Cancel**.
+   characters that are not valid in file names removed, the name cut to 150 characters, and
+   ` (<entry ID>)` added when two entries would produce the same name (names that differ only
+   in case count as the same, because Windows and macOS file systems treat them so). If files
+   already exist, **Project+ - Files already exist** reports
+   `<k> of <N> files already exist in this folder.` with **Overwrite**, **Skip existing**
+   (default) and **Cancel**.
 5. The busy strip reads `Exporting GeoJSON 4 of 12` with **Cancel**. On success a notification
    and the status line read `Exported <N> images to <folder>`. If every file was skipped by
    **Skip existing**, the notification and status line read
    `Skipped <N> existing files; nothing exported`: nothing was written and nothing was
    overwritten. Failures open
-   **Project+ - Export finished with errors**, listing each failed image and its reason, and
-   point you at **View > Show log**.
+   **Project+ - Export finished with errors**, listing each failed image with
+   `data file could not be read (see log)`, `output file is locked or not writable (see
+   log)` or `could not write the output file (see log)`, and point you at
+   **View > Show log**. If the manifest itself could not be written its line reads
+   `export-manifest.json: could not be written (see log)`; the GeoJSON files are still
+   there.
+6. Beside the files, the job writes `export-manifest.json`: the QuPath and Project+ versions,
+   a timestamp, the folder, the options chosen (including whether names were masked), and
+   one record per file with the entry ID, the file name, the source (`saved` for the data
+   file, `live-unsaved` for the open viewer's objects), the object count and, when names are
+   not masked, the image name. It is overwritten by the next export into the same folder, so
+   keep it with the files; it is what maps a file back to its image after a rename or a
+   masked export.
 
 Notes:
 
 - An image that is open in a viewer is exported from the objects in the viewer, not from its
   saved data, so unsaved changes are included. The dialog says
-  `1 is open with unsaved changes; its CURRENT objects are exported.`
-- With **Mask image names** on, the files take the masked names. That is the point of masking,
-  but it is easy to forget; the dialog says so.
+  `1 is open with unsaved changes; its CURRENT objects are exported.` QuPath marks a freshly
+  opened image as changed, so you can see this note right after opening an image you have
+  not touched; the export is still correct.
+- With **Mask image names** on, the files are named `<entry ID>.geojson` and the manifest
+  lists entry ID and file name only, never a real name. (QuPath's masked names are different
+  every time a project is opened, so they would be useless as file names.) Turn masking off
+  to export with real names.
+- Each file is written to a temporary name and renamed when complete, so a crash mid-export
+  never leaves a truncated `.geojson`.
+
+**Reading the files**
+
+- The content is QuPath's own GeoJSON `FeatureCollection`, so **File > Import objects...**
+  reads it back and nothing is added by Project+.
+- Coordinates are full-resolution pixel units of the image, with y increasing downward. There
+  is no micrometer scaling in the file; the pixel size is in the image, not the export.
+- Python, plain JSON: `json.load(gzip.open(path))` for a `.geojson.gz`, `json.load(open(path))`
+  for a `.geojson`; each feature's `properties.objectType` says annotation, detection or cell.
+- Python, GeoDataFrame: `geopandas.read_file(path)`.
+- R: `sf::st_read(path)`.
+- For a `.geojson.gz`, geopandas and sf need the path prefixed with `/vsigzip/`, or a
+  decompressed copy.
+
+### What Project+ records
+
+Project+ keeps no record of its own. What exists:
+
+- **The QuPath log.** Every bulk job (remove, clear saved data, export) and every single
+  removal writes an INFO line to the log at start and at the end, with the kind of job, the
+  counts, the options, the entry IDs involved and the list of failures. Entry IDs, not image
+  names, are what the log carries, so a masked project stays masked in the log. Open it with
+  **View > Show log**. QuPath writes no log file unless you ask for one: tick
+  **Edit > Preferences > General > Create log files** and QuPath writes a log file into its
+  user directory that then receives the same lines. A site that needs a durable record of
+  who cleared what should tick it on every workstation.
+- **The export manifest**, `export-manifest.json`, described above.
+
+Nothing is written into the images' own workflow history: clearing saved data leaves no step
+behind, and the project file records nothing about removals. There is no undo for a clear
+and no list of removed entries beyond the log.
 
 ### Refresh
 
@@ -508,11 +634,14 @@ own shortcuts in the viewer.
 | Escape (in the search box) | clear the search, focus the tree |
 | Ctrl+J | jump to current image |
 | F5 | refresh |
+| Ctrl+Shift+N | in checkbox mode, check all shown |
 | Ctrl+Shift+D | in checkbox mode, clear every check |
+| Alt+C, Alt+L, Alt+A (Windows and Linux) | in checkbox mode, press **Check all shown**, **Clear**, open **Actions** (mnemonics) |
 | Context-menu key or Shift+F10 | open the row's right-click menu |
 
-**Check all shown** has no shortcut: Ctrl+Shift+A is QuPath's own **Create full image
-annotation**, so it was not taken.
+On macOS the Ctrl chords are Cmd chords (the tooltips say so). **Check all shown** uses
+Ctrl+Shift+N rather than Ctrl+Shift+A, which is QuPath's own **Create full image
+annotation**. The chords are listed in the buttons' tooltips.
 
 Delete is deliberately not bound to removal: the built-in tab does not bind it either, and a
 stray Delete with focus in the tree would open a destructive confirmation you did not expect.
@@ -543,20 +672,26 @@ Everything else is part of a **display profile** (see [Save and switch display p
 
 | Profile setting | Where | Default (profile `Default`) |
 |---|---|---|
-| Grouping levels, in order | Display settings > Grouping; right-click > **Group by...** | the project's built-in sort key, if one is set; else none (flat) |
+| Grouping levels, in order | Display settings > Grouping; right-click > **Group by...** | none (flat). While **Default** is flat and the project has a built-in sort key (set from the built-in tab's **Sort by...**), the tree groups by that key without the key entering the profile, so the display settings dialog lists no levels and **Save profile** cannot carry the key to another project |
 | Expand on load | Display settings > Grouping | first level |
 | Fields shown under the name | Display settings > Fields shown under the name | none |
-| Thumbnail size | gear > **Thumbnail size**; Display settings > Appearance | copied from QuPath's own project thumbnail size on first run |
+| Thumbnail size | gear > **Thumbnail size**; Display settings > Appearance | copied from QuPath's own project thumbnail size the first time Project+ runs (when no profiles file exists yet); after that, whatever is saved in the profile |
 | Indicators | gear > **Indicators**; Display settings > Appearance | Thumbnail edges |
+
+Remembered between sessions, outside profiles:
+
+| What | Note |
+|---|---|
+| Export folder, Compress, Pretty-print, Exclude measurements | the last choices made in the **Export GeoJSON** dialog |
+| Last-used profile | per user in QuPath's preferences and per project in project metadata (the name as typed, under `_PROJECT_TAB_PLUS_PROFILE`) |
 
 Not settings, but honored:
 
 | What | Note |
 |---|---|
 | Search syntax | fixed; documented under [Search and filter](#search-and-filter) |
-| Mask image names | QuPath's own setting (right-click menu); Project+ honors it in rows, grouping and export file names |
+| Mask image names | QuPath's own setting (right-click menu). Masking covers the row names, the **Image name** and **File name** grouping levels and fields (withheld while masked), the name lists in the bulk dialogs, the busy strip, the search, the export file names and the manifest. It never covers metadata values or file paths: a `Patient` value stays a group label, a row field and a filter entry, and the move-to-trash dialog shows the file's path. A blinded project must not carry identifying values in its metadata. |
 | Profiles file location | fixed at `<QuPath user directory>/project-tab-plus/profiles.json`, or `<home>/QuPath/project-tab-plus/profiles.json` when QuPath has no user directory yet |
-| Last-used profile | automatic; per user in QuPath's preferences and per project in project metadata |
 
 </details>
 
@@ -581,6 +716,14 @@ folder), is not a local file, no longer exists, or is shared by another entry in
 (several scenes from one `.czi` or `.lif`). The entry is still removed if you click
 **Remove**; only the file offer is withheld. Delete multi-file images by hand in your file
 manager, moving the main file and its companion folder together.
+
+**"Cannot offer file deletion: the file is on a network location, which has no trash."**
+The image file's path starts with `\\` (a UNC path to a share). Operating systems keep no
+trash for network locations, so a move there would be a permanent delete, which Project+
+never performs. The entry is still removed if you click **Remove**. To remove the file,
+delete it by hand on the share, knowing it will not be recoverable. A mapped network drive
+(`S:\...`) is not detected and is offered like a local disk; see the warning under
+[Remove the current image](#remove-the-current-image-and-optionally-move-its-file-to-the-trash).
 
 **The indicators are stale, or a row has no edges although I annotated it.**
 Indicators read the summary QuPath writes when an image is saved, so they show the state at
@@ -615,9 +758,20 @@ Not an error. The current image's row was hidden by your search or key/value fil
 cleared them before scrolling to it. Retype the search if you still need it.
 
 **GeoJSON files are named "<name> (<entry ID>).geojson".**
-Two entries have the same image name, so the second file gets the entry ID added. Nothing was
-overwritten. If names are masked, every file has a masked name; turn off **Mask image names**
-to export with real names.
+Two entries have the same image name (or names that differ only in case), so the second file
+gets the entry ID added. Nothing was overwritten. `export-manifest.json` in the same folder
+maps every file to its entry.
+
+**GeoJSON files are named "<entry ID>.geojson".**
+**Mask image names** was on at export time, so the files carry entry IDs instead of names,
+and the manifest lists entry ID and file name only. Turn off **Mask image names** to export
+with real names. The entry ID is the number in the **Entry ID** grouping level and in the
+project's `data/` folder names.
+
+**"Folder does not exist. Create it, or click Browse... to pick one." in the export dialog.**
+The path typed in **Output folder** is not a folder on this machine. Create it in your file
+manager, or click **Browse...** and pick one. `Folder is not writable. Pick another folder.`
+means the folder exists but you cannot write there.
 
 **Clear saved data asked to close an image first.**
 Clearing the data file under an open image would be overwritten by the next save from the
@@ -632,8 +786,23 @@ Manager, if installed, can center it.
 Not an error. The profile was saved on a project that used that key; here every image lands
 under **(Unassigned)** for that level. Edit the grouping or pick another profile.
 
-**Where to file issues.** The repository issue tracker; include your platform, the QuPath
-version, and the lines from **View > Show log** around the time of the problem.
+**"Profile "<name>" is not on this machine; showing Default".**
+The project remembers a profile that was saved by someone else, or on another machine, and
+your profiles file does not have it. The tab opened with **Default**. Copy the profiles file
+from the other machine (**Manage profiles...** shows where it lives), or build the grouping
+again and save it under the same name; the warning stops once a profile with that name
+exists here.
+
+**I need a record of a bulk clear or removal that happened last week.**
+Project+ writes INFO lines to the QuPath log at the start and end of every bulk job and
+single removal, but QuPath keeps that log in memory only. Tick **Edit > Preferences >
+General > Create log files** on each workstation, and the lines are kept in a file in the
+QuPath user directory. Nothing can recover a record from before the option was ticked. See
+[What Project+ records](#what-project-records).
+
+**Where to file issues.** <https://github.com/uw-loci/qupath-extension-project-tab-plus/issues>;
+the bug template asks for your platform, the QuPath version, the extension version and the
+lines from **View > Show log** around the time of the problem.
 
 </details>
 
@@ -669,9 +838,9 @@ of them, that is a bug.
 | **remove from project** | Take an entry out of the project. The image file is not touched. |
 | **move saved data to the trash** | Move the entry's data folder to the operating system trash while removing it. A checkbox in the remove dialogs, unticked by default. |
 | **clear saved data** | Empty an entry's saved objects (all types and the TMA grid) and save it back, leaving image type, stain settings, metadata and description. The entry stays in the project. |
-| **move file to the trash** | Send the image file to the operating system trash, where it can be restored. The only kind of file deletion Project+ performs. "Delete" is never used for files. |
+| **move file to the trash** | Send the image file to the operating system trash, where it can be restored. The only kind of file deletion Project+ performs; offered for files on a local disk only (UNC paths are refused; mapped network drives cannot be detected and have no trash). "Delete" is never used for files. |
 | **single-file image** | An image stored as exactly one file. Only these are eligible for move to trash. |
 | **multi-file image** | An image stored as a main file plus companion files or a folder (`.vsi`, `.mrxs`, `.ndpis`, OME companion sets, Zarr). Refused for move to trash. |
-| **export GeoJSON** | Write the saved objects of each checked entry to one `.geojson` (or `.geojson.gz`) file per entry in a folder you pick. |
+| **export GeoJSON** | Write the saved objects of each checked entry to one `.geojson` (or `.geojson.gz`) file per entry in a folder you pick, plus an `export-manifest.json` that maps each file to its entry. |
 | **built-in Project tab** | QuPath's own Project tab. Project+ can hide it; it never changes it. |
-| **masked names** | QuPath's **Mask image names** setting, which replaces names with random ones for blinding. Project+ honors it everywhere, including grouping and export file names. |
+| **masked names** | QuPath's **Mask image names** setting, which replaces names with random ones for blinding. Project+ follows it wherever a name appears: row names, the name grouping levels and fields, the name lists in the bulk dialogs, the busy strip, the search, export file names and the manifest. Metadata values and file paths are never masked. |

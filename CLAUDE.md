@@ -22,7 +22,10 @@ indicators and checkbox-mode bulk actions. Java only, QuPath 0.7.0 floor, GPL-3.
 - Use `qupath.fx.dialogs.Dialogs`, never `qupath.lib.gui.dialogs.Dialogs`. Never
   `GeneralTools.deleteFile(f, true)` (it falls back to permanent deletion); file and data
   removal go through the OS trash only.
-- Nothing touches disk on the FX thread. Bulk jobs run serially on one cancelable thread.
+- Nothing touches disk on the FX thread, with one deliberate exception: the sub-kilobyte
+  `profiles.json` write is synchronous (decided in Phase 5, 2026-11-01) so a profile saved
+  just before quitting is never lost behind a running bulk job. Bulk jobs run serially on one
+  cancelable thread.
 - Do not modify `qupath-qpsc-dev` (QuPath source, read-only reference).
 
 ## Where the design lives

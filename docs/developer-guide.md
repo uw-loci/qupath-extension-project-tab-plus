@@ -61,14 +61,16 @@ browser (`core/`, `model/`, `ui/`) plus `preferences/` as in class-visibility. A
 | `model/EntryFilter` | Wraps `ProjectEntryPredicate.createIgnoreCase(text)` for the 0.7 syntax, strips and handles the `has=annotations\|detections\|tma` tokens itself (they need `ObjectPresence`), and adds the key/value combos. Unit-tested. |
 | `model/DisplayProfile`, `model/ProfileStore` | The `profiles.json` schema; atomic write (temp file + `ATOMIC_MOVE`) to `<QuPath user dir>/project-tab-plus/profiles.json`, or `<home>/QuPath/project-tab-plus/profiles.json` with a logged warning when QuPath has no user directory; `Default` always present; last-used profile in a PathPrefs key and per project under `_PROJECT_TAB_PLUS_PROFILE`. Unit-tested with a temp dir. |
 | `core/ObjectPresence`, `core/SummaryReader` | Gson POJO for `summary.json` (`hierarchy.objectTypeCounts`, `imageType`), parsed on the summary thread, cached by file mtime; states UNKNOWN / NONE / PRESENT with counts. Never calls `readHierarchy()` in a sweep. A live reader on the current image's hierarchy, debounced, sets the dashed (unsaved) state. |
-| `core/ThumbnailLoader` | One daemon thread; `entry.getThumbnail()` off FX; failed-server memo by entry ID, cleared on Refresh. |
-| `core/JumpToCurrent` | `project.getEntry(imageData)` -> index -> expand parents -> select -> scroll in `Platform.runLater`; clears the search and combos when the row is hidden. |
-| `core/RemoveImageCommand` | Close viewers (`qupath.closeViewer`, abort on cancel) -> `imageData.close()` -> optional `FileTrash` -> `project.removeImage(entry, dataToTrash)` -> `syncChanges()` -> `qupath.refreshProject()`. |
-| `core/DeleteEligibility` | Pure: one URI, scheme `file`, exists, extension on the allow-list, no `.companion.ome` sibling or `.ome.tif` set for `.tif`/`.tiff`, no other entry shares the URI; else a reason enum mapped to the D1 inline texts. Unit-tested. |
+| `core/ExportManifest` | Record + Gson writer/parser for `export-manifest.json` (versions, timestamp, folder, options, per-file entry ID / file name / `saved` or `live-unsaved` / object count / image name unless masked); written through a temp file after the last GeoJSON file, only when at least one file was written. Unit-tested. |
+| `ui/CheckboxIcon` | The checkbox-mode toggle glyph drawn in code (rounded frame + check `SVGPath`, stroked with `-fx-text-base-color`), replacing QuPath's red Selection-mode icon. |
+| `core/ThumbnailLoader` | One daemon thread; `entry.getThumbnail()` off FX; failed-server memo by entry ID, cleared on Refresh. The cache holds one FX `Image` per entry for the life of the project with no bound; not measured at scale, and bounding it is deferred. |
+| `ui/ProjectTabPlusPane.jumpToCurrent` | `project.getEntry(imageData)` -> index -> expand parents -> select -> scroll in `Platform.runLater`; clears the search and combos when the row is hidden. Not a separate class. |
+| `core/RemoveImageCommand` | Close viewers (`qupath.closeViewer`, abort on cancel) -> `imageData.close()` -> optional `FileTrash` -> `project.removeImage(entry, dataToTrash)` -> `syncChanges()` -> `qupath.refreshProject()`. Checks that the data folder is gone afterwards and words the status like the file step when it is not. INFO log line at start and end, carrying the entry ID, never the name. |
+| `core/DeleteEligibility` | Pure: one URI, scheme `file`, exists, not a UNC path (`\\server\share`, which has no trash), extension on the allow-list, no `.companion.ome` sibling or `.ome.tif` set for `.tif`/`.tiff`, no other entry shares the URI; else a reason enum mapped to the D1 inline texts. Mapped network drives are not detectable and pass. Unit-tested. |
 | `core/FileTrash` | Checks `Desktop.isSupported(MOVE_TO_TRASH)` first so D3 can name "no trash support", then `GeneralTools.moveToTrash(File)` on the bulk thread. Result: moved / unsupported / failed. Never a permanent delete; `GeneralTools.deleteFile(f, true)` is the call NOT to make. |
-| `core/BulkJobs` (`BulkRemove`, `BulkClearData`, `BulkExportGeoJson`) | Serial, cancelable, progress callback, per-entry failure list, one summary. Clear = `readImageData` -> `clearAll()` -> `saveImageData` -> `close()`. Export = `PathIO.exportObjectsAsGeoJSON` with `stripInvalidFilenameChars(name)` and ` (<entryId>)` on collision; entries open in a viewer are exported from a snapshot of the live hierarchy taken on the FX thread before the job starts, every other entry from `readHierarchy()`. Clear leaves no backup: `saveImageData` deletes `data.qpdata.bkp` once the new file is written. |
+| `core/BulkJobs` (`BulkRemove`, `BulkClearData`, `BulkExportGeoJson`) | Serial, cancelable, progress callback, per-entry failure list, one summary, and one INFO log line at job start and end with kind, counts, options, entry IDs and the failure list (IDs, not names). Clear = `readHierarchy()` first (an unreadable data file fails the entry and is left untouched; QuPath's `readImageData` would otherwise hand back an empty `ImageData` to save) -> `readImageData` -> `clearAll()` -> `saveImageData` -> `close()`, with read and save failures reported as different reasons. Export = `PathIO.exportObjectsAsGeoJSON` through a temp file and move, named by `core/ExportNaming` (`stripInvalidFilenameChars`, stem capped at 150 characters, case-insensitive collision set, ` (<entryId>)` on collision, `<entryId>.geojson` while names are masked), plus `export-manifest.json` beside the files; entries open in a viewer are exported from a snapshot of the live hierarchy taken on the FX thread before the job starts, every other entry from `readHierarchy()`. Clear leaves no backup: `saveImageData` deletes `data.qpdata.bkp` once the new file is written. |
 | `core/RefreshCoordinator` | Debounced rebuild (150 ms filter, 250 ms built-in root hook) fed by `projectProperty`, `imageDataProperty`, the built-in TreeView's `rootProperty()` (looked up once via `.project-browser`, trigger only), Refresh/F5 and an image-list diff on tab selection. Preserves expansion by group path, selection and checked IDs. |
-| `preferences/ProjectTabPlusPreferences` | `hideBuiltInProjectTab` (false), `useCustomHighlightColor` (false, meaning the theme tint) and `currentImageHighlightColor`, `selectTabOnStartup` (true), `lastProfile`; preference category `Project+` via `PropertyItemBuilder`. |
+| `preferences/ProjectTabPlusPreferences` | `hideBuiltInProjectTab` (false), `useCustomHighlightColor` (false, meaning the theme tint) and `currentImageHighlightColor`, `selectTabOnStartup` (true), `lastProfile`; preference category `Project+` via `PropertyItemBuilder`. Not shown in the pane: `projecttabplus.export.folder` / `.compress` (false) / `.prettyPrint` / `.excludeMeasurements`, the remembered D6 choices. |
 
 Everything in `model/` and `core/` except the two command classes is plain Java without
 `QuPathGUI`, which is what makes it unit-testable.
@@ -77,7 +79,7 @@ Everything in `model/` and `core/` except the two command classes is plain Java 
 
 | Thread | Does |
 |---|---|
-| FX thread | `setRoot`, cell updates, dialogs. Nothing else. |
+| FX thread | `setRoot`, cell updates, dialogs. One deliberate disk write: `persistProfiles()` writes `profiles.json` synchronously (a few hundred bytes) so a save is never lost behind a running bulk job or at quit. Nothing else. |
 | `ptp-thumbnail` (1 daemon) | Thumbnails; failed-server memo. |
 | `ptp-summary` (1 daemon) | `summary.json` parse, mtime cache; drives the `Loading saved-data summaries i of N` strip. |
 | `ptp-tree` (1 daemon, latest wins) | Grouping and filter rebuilds; the display settings count line. |
@@ -94,8 +96,12 @@ Everything in `model/` and `core/` except the two command classes is plain Java 
    refresh; the current image's row drops the dashed state.
 4. Profile switch -> D8 if modified -> `ProfileStore` -> rebuild -> PathPrefs `lastProfile`
    and project `_PROJECT_TAB_PLUS_PROFILE` written.
-5. Checkbox-mode action -> D4/D5/D6 -> `BulkJobs` on `ptp-bulk` -> busy strip with Cancel ->
-   notification on success or D7 on failures -> `syncChanges()` + `qupath.refreshProject()`.
+5. Checkbox-mode action -> D4/D5/D6 -> `BulkJobs` on `ptp-bulk` (INFO line at start) ->
+   busy strip with Cancel -> notification on success or D7 on failures (INFO line at end with
+   the failure list) -> `syncChanges()` + `qupath.refreshProject()`. Nothing is written into
+   an image's workflow history and nothing into the project file; the log and, for export,
+   `export-manifest.json` are the only record (user guide,
+   [What Project+ records](user-guide.md#what-project-records)).
 
 ### Coexistence rules
 
@@ -115,14 +121,18 @@ Everything in `model/` and `core/` except the two command classes is plain Java 
 
 ### Tests and harness
 
-- `./gradlew test` runs the JUnit suite: `TreeBuilder`, `EntryFilter`, `ProfileStore`,
-  `DeleteEligibility`, `SummaryReader` and the export naming.
+- `./gradlew test` runs the JUnit suite (63 tests): `TreeBuilder`, `EntryFilter`,
+  `ProfileStore`, `DeleteEligibility`, `SummaryReader`, `ExportNaming`, `ExportManifest` and
+  `BulkJobs` (against a fake entry; the empty-`ImageData` fallback of a real corrupted data
+  file needs an image server, so it is covered by a harness scenario instead).
 - End-to-end scenarios live in `harness/` in this repo and run through the monorepo's
   `tools/qp-harness` (`bin/qp-gui` drives a hidden `QuPathGUI`; `bin/qp-dataset synthetic-tme`
-  builds a ground-truthed project to run them on). The five scenarios, each a class in
+  builds a ground-truthed project to run them on). The six scenarios, each a class in
   `harness/` sharing `HarnessSupport.java`: `TabInsertHideRestoreScenario`,
   `RemoveCurrentDirtyCancelScenario` (dirty viewer, cancel path), `BulkClearOpenEntryScenario`,
-  `ExportNameCollisionScenario`, `ProfileRoundTripScenario` (through `profiles.json`). Run one
+  `BulkClearUnreadableScenario` (a corrupted `data.qpdata` is failed, not emptied),
+  `ExportNameCollisionScenario` (also reads the manifest back), `ProfileRoundTripScenario`
+  (through `profiles.json`). Run one
   with `tools/qp-harness/bin/qp-gui harness/<Scenario>.java . <project.qpproj>` from this
   repo (the second argument is the extension repo or jar).
 - Checks a human still has to make (trash support on Windows and macOS, dashed edges on a
@@ -138,8 +148,10 @@ Everything in `model/` and `core/` except the two command classes is plain Java 
 
 None in 0.1.0. Everything the tab does is reachable from its controls only. If a scripting
 surface is added later, the natural shape is: apply a named profile, return the checked entry
-IDs, and run the three checkbox-mode actions headlessly. This section stays so the heading
-set matches the other extensions.
+IDs, and run the three checkbox-mode actions headlessly. The three `BulkJobs` methods are
+public static methods on plain QuPath types, so they may already be callable from a Groovy
+script through the extension class loader; nobody has tried, and they are not a supported
+API. This section stays so the heading set matches the other extensions.
 
 </details>
 
@@ -148,8 +160,11 @@ set matches the other extensions.
 
 ### Contributing
 
-- Issues: say which platform and QuPath version, and paste the relevant lines from
-  **View > Show log**.
+- Issues: <https://github.com/uw-loci/qupath-extension-project-tab-plus/issues>. The bug
+  template (`.github/ISSUE_TEMPLATE/bug_report.md`) asks for the platform, the QuPath and
+  extension versions, and the relevant lines from **View > Show log**.
+- Lifted files open with a two-line provenance comment (source repository, license, date
+  modified). Keep it when you edit the file; add one when you lift another.
 - Pull requests run `./gradlew spotlessApply test` first.
 - ASCII only in code, logs, dialog strings and `strings.properties` (production QuPath runs
   on Windows with cp1252; a Unicode arrow in a log line has hung workflows before). Markdown
@@ -169,20 +184,44 @@ set matches the other extensions.
 
 ### Releasing
 
-1. Bump the version in `build.gradle.kts`, tag `vX.Y.Z` and push the tag. The release workflow
-   builds and attaches the `-all.jar`.
-2. `.github/workflows/notify-catalog.yml` dispatches `extension-release` to
-   `uw-loci/qupath-catalog-mikenelson`, whose workflow prepends the new release to this
-   extension's entry in `catalog.json`. It needs the org-level `CATALOG_DISPATCH_TOKEN`
-   secret. After the first release verify that the workflow ran, that the catalog got an
-   `Auto-bump <repo> -> <tag>` commit within about a minute, and that the new entry's
-   `main_url` returns HTTP 200 and matches the published asset name.
-3. If the secret did not reach this repo, hand-edit `catalog.json` on the catalog's default
-   branch (`master`): **prepend** the new release and keep every prior entry. Replacing the
-   first entry drops the installed version from the list and QuPath can then neither match
-   the installed extension nor offer the update.
-4. `version_range.min` must be `0.7.0` (the compile floor) and at or below every QuPath
-   version in use; no `max`.
+Three workflows under `.github/workflows/`, copied from `qupath-extension-tiles-to-pyramid`
+with the names changed:
+
+- `ci.yml` runs `./gradlew build` on every push to `main` and every pull request, on Ubuntu
+  (under `xvfb-run`, for the JavaFX tests) and on Windows, with `fail-fast` off so a Linux
+  failure cannot cancel the Windows job. It also has a `workflow_dispatch` button for the
+  rare dropped push event.
+- `release.yml` runs when a tag matching `v*` is pushed: builds with `./gradlew build
+  shadowJar`, finds the `-all.jar` under `build/libs/` and creates (or updates) the GitHub
+  release `Project Tab Plus X.Y.Z` for that tag with the jar attached; its body links this
+  `CHANGELOG.md` and repeats the catalog note below.
+- `notify-catalog.yml` sends the `extension-release` dispatch to the catalog.
+
+Both build workflows set up Temurin 25 and 21 with 21 last, so the Gradle daemon runs on 21
+(the bytecode target) while the Java 25 toolchain QuPath 0.7.0's settings plugin asks for is
+available. Keep the two in step. The first CI run (2026-11-01) was green on both platforms;
+its only annotations were the `actions/checkout@v4` and `setup-java@v4` Node 20 deprecation
+notices, so bump both to v5 in both files, in step with tiles-to-pyramid, when you next touch
+them.
+
+1. Update `CHANGELOG.md` (move the unreleased section under the new version and date), bump
+   the version in `build.gradle.kts`, commit, then tag `vX.Y.Z` and push the tag.
+   `release.yml` builds and attaches `qupath-extension-project-tab-plus-X.Y.Z-all.jar`.
+2. **The catalog bump is manual.** GitHub does not raise `release: published` for a release
+   created with the workflow's `GITHUB_TOKEN`, so `notify-catalog.yml` never fires from
+   `release.yml` on its own. Either run it by hand (Actions > *Notify catalog of release* >
+   *Run workflow*, optionally naming the tag), or hand-edit `catalog.json`. The dispatch
+   path needs the org-level `CATALOG_DISPATCH_TOKEN` secret, which **is not currently
+   available to this repository**, so for now the hand edit is the path.
+3. Hand edit: on the catalog's default branch (`master`) in
+   `uw-loci/qupath-catalog-mikenelson`, **prepend** the new release to this extension's
+   `releases[]` and keep every prior entry. Replacing the first entry drops the installed
+   version from the list and QuPath can then neither match the installed extension nor
+   offer the update. If the dispatch path does fire, its workflow prepends the same way;
+   verify the `Auto-bump <repo> -> <tag>` commit landed within about a minute.
+4. Either way, check that the new entry's `main_url` returns HTTP 200 and matches the
+   published asset name, that `version_range.min` is `0.7.0` (the compile floor) and at or
+   below every QuPath version in use, and that there is no `max`.
 5. The catalog's raw URL is cached for about five minutes and QuPath fetches it once per
    process, so to see the update offered: wait five minutes, fully restart QuPath, then
    **Help > Check for updates (web)**.
