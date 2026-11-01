@@ -400,12 +400,14 @@ public final class ProjectTabPlusPane extends BorderPane {
         showBuiltIn.setOnAction(e -> ProjectTabPlusPreferences.hideBuiltInProjectTabProperty().set(!showBuiltIn.isSelected()));
         MenuItem legend = new MenuItem(Strings.get("menu.indicatorLegend"));
         legend.setOnAction(e -> IndicatorLegendDialog.show(qupath));
+        MenuItem highlightColor = new MenuItem(Strings.get("context.highlightColor"));
+        highlightColor.setOnAction(e -> HighlightColorDialog.show(qupath));
 
         gear.getItems().setAll(save, saveAs, rename, delete, manage, new SeparatorMenuItem(),
                 edit, thumbs, indicators, new SeparatorMenuItem(),
                 create, open, add, new SeparatorMenuItem(),
                 removeCurrent, jump, new SeparatorMenuItem(),
-                showBuiltIn, legend);
+                showBuiltIn, legend, highlightColor);
         gear.setOnShowing(e -> {
             boolean isDefault = savedProfile == null || ProfileStore.DEFAULT_NAME.equals(savedProfile.getName());
             rename.setDisable(isDefault);
@@ -654,13 +656,16 @@ public final class ProjectTabPlusPane extends BorderPane {
         CheckMenuItem mask = ActionUtils.createCheckMenuItem(maskAction);
         MenuItem groupBy = new MenuItem(Strings.get("context.groupBy"));
         groupBy.setOnAction(e -> showDisplaySettings());
+        MenuItem highlightColor = new MenuItem(Strings.get("context.highlightColor"));
+        highlightColor.setOnAction(e -> HighlightColorDialog.show(qupath));
 
         SeparatorMenuItem sep1 = new SeparatorMenuItem();
         SeparatorMenuItem sep2 = new SeparatorMenuItem();
         SeparatorMenuItem sep3 = new SeparatorMenuItem();
         SeparatorMenuItem sep4 = new SeparatorMenuItem();
         contextMenu.getItems().setAll(open, jump, sep1, remove, removeCurrent, duplicate, rename, addMetadata,
-                description, refreshThumb, sep2, check, uncheck, sep3, openDir, sep4, mask, groupBy);
+                description, refreshThumb, sep2, check, uncheck, sep3, openDir, sep4, mask, groupBy,
+                highlightColor);
         contextMenu.setOnShowing(e -> {
             contextMenuShowing = true;
             List<ProjectImageEntry<BufferedImage>> entries = selectedEntries();

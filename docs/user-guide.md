@@ -65,7 +65,8 @@ The gear menu holds, in order: **Save profile**, **Save profile as...**, **Renam
 (Hidden / Small / Medium / Large), **Indicators** (Thumbnail edges / Badges / Off);
 **Create project...**, **Open project...**, **Add images...**; **Remove current image...**,
 **Jump to current image (Ctrl+J)** (`Jump to current image (Cmd+J)` on macOS); **Show
-built-in Project tab** (a check item) and **Indicator legend...**.
+built-in Project tab** (a check item), **Indicator legend...** and **Set current image
+highlight color...**.
 
 **First look.** On first open the tree is grouped by the key the built-in tab was sorting by,
 if one was set for this project; otherwise it is a flat list, like the built-in tab. Group
@@ -234,9 +235,13 @@ is hidden because a group above it is collapsed, every group row on the path dow
 collapsed one is tinted and bold and ends with an `[open inside]` chip, so a glance at the
 top level still tells you where the image is; expand the chain (or press **Jump to current
 image**) and the mark returns to the image row alone. When a marked row is also selected,
-the selection color covers the tint and the bold name plus the chip carry the state. The tint is the theme's color by default; to use
-your own, turn on **Custom current image highlight** in **Edit > Preferences > Project+** and
-pick a **Current image highlight color**. If no row is marked while an image is open, the
+the selection color covers the tint and the bold name plus the chip carry the state. The tint
+is the theme's color by default. To use your own, right-click any row (or open the gear menu)
+and choose **Set current image highlight color...**: in the **Project+ - Current image
+highlight color** window untick **Use the theme color (default)** and pick a color; the rows
+behind the window change as you pick, and **Close** is the only button. The same two settings
+are **Custom current image highlight** and **Current image highlight color** in **Edit >
+Preferences > Project+**. If no row is marked while an image is open, the
 image is not an entry of this project. If Active Image Helper is installed it
 marks the same image on the built-in tab in its own way; the two do not interact.
 
@@ -673,7 +678,7 @@ Global preferences live in **Edit > Preferences**, category **Project+**:
 | Preference | Default | What it does |
 |---|---|---|
 | Hide the built-in Project tab | off | Hides QuPath's own Project tab while Project+ is installed. QuPath keeps using it internally, so nothing breaks; untick to bring it back at once. The gear menu's **Show built-in Project tab** is the same switch. See the Active Image Helper note under [Advanced](#coexistence-with-active-image-helper). |
-| Custom current image highlight | off | Use the color below instead of the theme tint for the row of the image open in the viewer. Turn it on if you run another extension that colors the built-in tab and want both to match. |
+| Custom current image highlight | off | Use the color below instead of the theme tint for the row of the image open in the viewer. Turn it on if you run another extension that colors the built-in tab and want both to match. Also set from the right-click or gear menu item **Set current image highlight color...**. |
 | Current image highlight color | theme color | Color of the tint on the row of the image open in the viewer, in the Project+ tab. Leave it as the theme color unless you run another extension that colors the built-in tab and want both to match. Used only when the custom highlight above is on. |
 | Open the Project+ tab on startup | on | Selects the Project+ tab when QuPath starts and a project is open. It does not take the selection away from an undocked built-in tab. Untick to keep QuPath's own tab selection. |
 

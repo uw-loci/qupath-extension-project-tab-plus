@@ -37,7 +37,9 @@ worth the screen space.
   lack a value.
 - **The current image marked** with a tinted, bold row and an `[open]` chip (the group rows
   above it take the tint and an `[open inside]` chip while it is collapsed out of view), and a
-  **Jump to current image** button that expands the tree and scrolls to it.
+  **Jump to current image** button that expands the tree and scrolls to it. The tint follows
+  the theme, or a color of your own from **Set current image highlight color...** in the
+  right-click or gear menu (also in Edit > Preferences > Project+).
 - **Saved-data indicators** on each thumbnail: solid top edge for annotations, hatched (`////`)
   right edge for detections, cells and tiles, solid bottom edge for TMA cores. The hatching
   tells the detections edge from the annotation edge by shape, not only by color. Dashed
