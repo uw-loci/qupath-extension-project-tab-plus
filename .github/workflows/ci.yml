@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual recovery. GitHub can drop a push event -- commit 0f47da0 landed on main during the
+  # 2026-08-06 Actions outage recovery and produced no run at all, with no way to ask for one.
+  # Without this the only remedy is an empty commit, which puts noise in the history to work
+  # around someone else's infrastructure.
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      # Do NOT let one platform's failure cancel the other. Windows is the production
+      # platform, and with fail-fast on (the default) a Linux failure cancelled the Windows
+      # job before it ran a single test -- so Windows went untested for months while CI
+      # looked merely "red on Linux". Windows-only failure modes (cp1252 encoding, native
+      # library loading, path handling) are exactly what this matrix exists to catch, and
+      # they are invisible to a WSL smoke test.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Java 21, not 25: QuPath 0.7 runs on Java 21 and the build pins bytecode to it
+      # (options.release = 21 in build.gradle.kts). Testing on a JVM the product never runs
+      # on can both miss real failures and invent ones. Keep this in step with release.yml,
+      # or a JDK-specific check (e.g. a SpotBugs finding) could pass CI and fail the release.
+      - name: Set up Java (21 daemon + 25 toolchain)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          # QuPath 0.7.0's settings plugin requires a Java 25 compiler toolchain.
+          # Install 25 so Gradle can find it; 21 is listed last so JAVA_HOME (the
+          # Gradle daemon JVM) stays on 21, matching the extension's bytecode target.
+          java-version: |
+            25
+            21
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        if: runner.os != 'Windows'
+        run: chmod +x gradlew
+
+      - name: Build and test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run ./gradlew build
+        env:
+          DISPLAY: ':99'
+
+      - name: Build and test (Windows)
+        if: runner.os == 'Windows'
+        run: ./gradlew build

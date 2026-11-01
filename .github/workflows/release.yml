@@ -1,0 +1,105 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v1.0.0, v1.2.3)
+
+permissions:
+  contents: write  # Required for creating releases
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Java 21 daemon (QuPath 0.7 runs on Java 21 and the build pins bytecode to it,
+      # options.release = 21) PLUS a Java 25 toolchain, which QuPath 0.7.0's settings plugin
+      # now requires for the compile task. 25 is installed so Gradle can find the toolchain;
+      # 21 is listed last so JAVA_HOME (the daemon) stays on 21. Keep in step with ci.yml --
+      # if the two build on different JDKs, a JDK-specific finding can pass CI and fail the
+      # release, which is the worst time to discover it.
+      - name: Set up Java (21 daemon + 25 toolchain)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: |
+            25
+            21
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        # Explicitly invoke shadowJar: the catalog and the installation notes below point at
+        # the *-all.jar, and `./gradlew build` alone leaves only the plain jar.
+        run: ./gradlew build shadowJar
+
+      - name: Find JAR file
+        id: find_jar
+        run: |
+          # Prefer the shadow ("-all") jar, the artifact the catalog serves. Fall back to the
+          # plain jar only if -all is missing.
+          JAR_PATH=$(find build/libs -name "*-all.jar" | head -n 1)
+          if [ -z "$JAR_PATH" ]; then
+            JAR_PATH=$(find build/libs -name "*.jar" -not -name "*-javadoc.jar" -not -name "*-sources.jar" -not -name "*-all.jar" | head -n 1)
+          fi
+          JAR_NAME=$(basename "$JAR_PATH")
+          echo "jar_path=$JAR_PATH" >> $GITHUB_OUTPUT
+          echo "jar_name=$JAR_NAME" >> $GITHUB_OUTPUT
+          echo "Found JAR: $JAR_NAME at $JAR_PATH"
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Project Tab Plus ${{ steps.get_version.outputs.version }}
+          body: |
+            ## QuPath Project Tab Plus ${{ steps.get_version.outputs.version }}
+
+            A Project+ tab beside QuPath's own Project tab: multi-level metadata grouping,
+            display profiles, jump to the current image, saved-data indicators and
+            checkbox-mode bulk actions (remove, clear saved data, export GeoJSON).
+
+            ### Installation
+
+            1. Download the JAR file below
+            2. Place it in QuPath's `extensions` folder:
+               - **Windows**: `C:\Users\YourName\QuPath\extensions\`
+               - **macOS**: `~/QuPath/extensions/`
+               - **Linux**: `~/QuPath/extensions/`
+            3. Restart QuPath
+
+            ### What's New
+
+            See the [CHANGELOG](https://github.com/uw-loci/qupath-extension-project-tab-plus/blob/main/CHANGELOG.md) for detailed release notes.
+
+            ### Requirements
+
+            - QuPath 0.7.0 or later (the jar is built for QuPath's own Java 21 runtime)
+
+            ### Catalog
+
+            A release created by this workflow with the default GITHUB_TOKEN does not fire the
+            `release: published` event that `notify-catalog.yml` listens for, so after the release
+            run that workflow by hand (Actions > Notify catalog of release > Run workflow) or
+            hand-bump the catalog.
+          files: ${{ steps.find_jar.outputs.jar_path }}
+          draft: false
+          prerelease: false
+
+      - name: Release Summary
+        run: |
+          echo "[OK] Release created/updated successfully"
+          echo "Artifact: ${{ steps.find_jar.outputs.jar_name }}"
+          echo "Version: ${{ steps.get_version.outputs.version }}"
