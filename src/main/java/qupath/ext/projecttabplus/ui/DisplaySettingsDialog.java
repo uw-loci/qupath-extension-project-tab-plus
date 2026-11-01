@@ -51,6 +51,7 @@ final class DisplaySettingsDialog {
     private final ToggleGroup thumbGroup = new ToggleGroup();
     private final ToggleGroup indicatorGroup = new ToggleGroup();
     private final PauseTransition countDebounce = new PauseTransition(Duration.millis(300));
+    /** True while controls are being repopulated, so their action handlers do not write back into the profile. */
     private boolean loading;
 
     DisplaySettingsDialog(ProjectTabPlusPane pane) {

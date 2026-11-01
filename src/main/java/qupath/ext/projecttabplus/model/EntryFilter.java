@@ -19,7 +19,14 @@ import qupath.lib.projects.ProjectImageEntry;
  */
 public final class EntryFilter implements Predicate<EntryFilter.Candidate> {
 
-    /** What one image offers the filter. */
+    /**
+     * What one image offers the filter.
+     *
+     * @param entry the project entry
+     * @param info the entry snapshot
+     * @param presence the saved-data summary, or null when not read yet (treated as UNKNOWN, so
+     *                 has= keywords reject the image)
+     */
     public record Candidate(ProjectImageEntry<?> entry, EntryInfo info, ObjectPresence presence) {
     }
 

@@ -108,9 +108,11 @@ import qupath.lib.projects.ProjectImageEntry;
 
 /**
  * The Project+ tab content: toolbar, busy strip, grouped tree, status line and search bar.
- * Owns the checked set, the live display profile and the three background threads. Only
- * {@code setRoot}, cell updates and dialogs run on the FX thread; every disk read runs on
- * {@code ptp-tree}, {@code ptp-summary} or {@code ptp-bulk}.
+ * Owns the checked set, the live display profile and four background threads: {@code ptp-tree}
+ * (rebuilds), {@code ptp-summary} (summary.json reads), {@code ptp-bulk} (project-changing jobs,
+ * serial) and the thumbnail loader. Every method is FX-thread only unless its javadoc says
+ * otherwise; every disk read runs on a background thread, and the one disk write on the FX
+ * thread is {@link #persistProfiles()}.
  */
 public final class ProjectTabPlusPane extends BorderPane {
 
@@ -726,7 +728,7 @@ public final class ProjectTabPlusPane extends BorderPane {
                 checkedIds.clear();
                 e.consume();
             } else if (e.getCode() == KeyCode.N && e.isShortcutDown() && e.isShiftDown() && checkboxMode.get()) {
-                // Unassigned in QuPath 0.7.0's accelerator table (checked 2026-11-01).
+                // Ctrl+Shift+N is free in QuPath 0.7; it must not collide with a QuPath accelerator.
                 checkAllShown();
                 e.consume();
             }
@@ -837,8 +839,8 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     /**
      * Save the profile list to disk at once, reporting a failure as a notification. This is the
-     * one deliberate disk write on the calling (FX) thread: the file is a few hundred bytes, and
-     * a write queued behind a long bulk job was lost when QuPath quit before the job ended.
+     * one deliberate disk write on the FX thread: the file is a few hundred bytes, and a write
+     * queued behind a running bulk job is lost if QuPath quits before the job ends.
      */
     void persistProfiles() {
         List<DisplayProfile> snapshot = profiles.stream().map(DisplayProfile::copy).toList();
@@ -1389,7 +1391,10 @@ public final class ProjectTabPlusPane extends BorderPane {
         return checkboxMode.get();
     }
 
-    /** @return the checked entry IDs */
+    /**
+     * @return the checked entry IDs, live. Mutate on the FX thread only: the status line and the
+     *         Actions button listen to it.
+     */
     public ObservableSet<String> checkedIds() {
         return checkedIds;
     }
@@ -1766,7 +1771,11 @@ public final class ProjectTabPlusPane extends BorderPane {
         return qupath;
     }
 
-    /** @return the single-thread executor for remove, clear, export and trash */
+    /**
+     * @return the single thread every project-changing job runs on, serially: remove, clear,
+     *         export, trash, and the thumbnail and project-metadata writes. A dialog raised from
+     *         it must go through {@code FXUtils.callOnApplicationThread}.
+     */
     public ExecutorService bulkExecutor() {
         return bulkExecutor;
     }
@@ -1779,16 +1788,6 @@ public final class ProjectTabPlusPane extends BorderPane {
     /** @return the tree, for the harness and tests */
     public TreeView<Row> tree() {
         return tree;
-    }
-
-    /** @return the entry ID of the current image, or null */
-    public String currentEntryId() {
-        return currentEntryId;
-    }
-
-    /** @return the search field */
-    public TextField searchField() {
-        return searchField;
     }
 
     /** @return the checkbox-mode property */
@@ -1806,19 +1805,9 @@ public final class ProjectTabPlusPane extends BorderPane {
         return status.getText();
     }
 
-    /** @return the busy strip, for tests */
-    Node busyStrip() {
-        return busyStrip;
-    }
-
     /** @return the bulk command helper */
     public BulkCommands bulkCommands() {
         return bulkCommands;
-    }
-
-    /** @return the names of the profiles, in combo order */
-    public List<String> profileNames() {
-        return profiles.stream().map(DisplayProfile::getName).toList();
     }
 
     /**
@@ -1867,29 +1856,6 @@ public final class ProjectTabPlusPane extends BorderPane {
     /** @return the profiles file on disk */
     public Path profilesFilePath() {
         return profileStore.getFile();
-    }
-
-    /** @return the tree root's group values at the top level, for tests */
-    public List<String> topLevelGroups() {
-        List<String> out = new ArrayList<>();
-        if (tree.getRoot() != null) {
-            for (TreeItem<Row> item : tree.getRoot().getChildren()) {
-                if (item.getValue() instanceof GroupRow g) {
-                    out.add(g.value());
-                }
-            }
-        }
-        return out;
-    }
-
-    /** @return the current rebuild generation, which increases on every rebuild request */
-    public int generation() {
-        return generation.get();
-    }
-
-    /** @return true while the busy strip is shown */
-    public boolean isBusy() {
-        return busyStrip.isVisible();
     }
 
     /** Stop the background threads. */

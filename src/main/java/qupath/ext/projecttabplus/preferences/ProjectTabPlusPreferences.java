@@ -32,7 +32,7 @@ public final class ProjectTabPlusPreferences {
             PathPrefs.createPersistentPreference(PREFIX + "selectTabOnStartup", true);
     private static final StringProperty lastProfile =
             PathPrefs.createPersistentPreference(PREFIX + "lastProfile", "Default");
-    // The four D6 export options, remembered between sessions; not shown in the preference pane.
+    // The four export-dialog options, remembered between sessions; not shown in the preference pane.
     private static final StringProperty exportFolder =
             PathPrefs.createPersistentPreference(PREFIX + "export.folder", "");
     private static final BooleanProperty exportCompress =

@@ -15,7 +15,7 @@ import qupath.ext.projecttabplus.model.ProfileStore;
 import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.fx.dialogs.Dialogs;
 
-/** Save-as, rename and delete for profiles, plus the unsaved-changes prompt (D8, D9, D10). */
+/** Save-as, rename and delete for profiles, plus the unsaved-changes prompt. */
 final class ProfileDialogs {
 
     /** The answer to the unsaved-changes prompt. */
@@ -26,7 +26,7 @@ final class ProfileDialogs {
     private ProfileDialogs() {
     }
 
-    /** D8. */
+    /** The unsaved-changes prompt shown before switching away from a modified profile. */
     static UnsavedChoice askUnsaved(ProjectTabPlusPane pane, String profileName) {
         ButtonType save = new ButtonType(Strings.get("profile.unsaved.save"), ButtonData.OK_DONE);
         ButtonType discard = new ButtonType(Strings.get("profile.unsaved.discard"), ButtonData.OTHER);
@@ -116,7 +116,7 @@ final class ProfileDialogs {
         pane.persistProfiles();
     }
 
-    /** Delete a profile (never Default) after D10. */
+    /** Delete a profile (never Default) after a confirmation that defaults to Cancel. */
     static void delete(ProjectTabPlusPane pane, DisplayProfile profile) {
         delete(pane, profile, pane.qupath().getStage());
     }
@@ -140,7 +140,7 @@ final class ProfileDialogs {
             return;
         }
         // Switch away BEFORE removing: dropping the combo's current item makes the combo pick a
-        // neighbor, which ran the unsaved-changes prompt (D8) for the profile just deleted.
+        // neighbor, which would raise the unsaved-changes prompt for the profile just deleted.
         if (profile == pane.savedProfile()) {
             pane.selectProfile(pane.profiles().get(0), true);
         }

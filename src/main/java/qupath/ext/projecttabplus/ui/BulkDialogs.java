@@ -30,7 +30,11 @@ import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.projects.ProjectImageEntry;
 
-/** D4, D5, D6, the overwrite prompt and D7. */
+/**
+ * The checkbox-mode dialogs: D4 remove confirmation, D5 clear-saved-data confirmation, D6 export
+ * options, the overwrite prompt, and D7 the result shown only when something failed. D&lt;n&gt;
+ * is the prefix of each dialog's keys in strings.properties.
+ */
 final class BulkDialogs {
 
     /** D6 answer. */

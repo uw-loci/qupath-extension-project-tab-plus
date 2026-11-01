@@ -157,8 +157,8 @@ public class ProjectTabPlusExtension implements QuPathExtension {
                 return;
             }
             if (builtInTab.getContent() == null) {
-                // Undocked (FXUtils holds the content): it comes back when its window closes;
-                // re-adding the empty tab here left two Project tabs after the redock.
+                // Undocked (FXUtils holds the content): it comes back when its window closes.
+                // Re-adding the empty tab here would leave two Project tabs after the redock.
                 return;
             }
             tabPane.getTabs().add(Math.min(builtInIndex, tabPane.getTabs().size()), builtInTab);

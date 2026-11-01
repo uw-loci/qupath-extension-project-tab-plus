@@ -118,7 +118,8 @@ public record DeleteEligibility(Reason reason, Path path, String extension, int 
 
     /**
      * A {@code .tif} next to a {@code *.companion.ome} file, or an {@code .ome.tif} next to
-     * other {@code .ome.tif} files, is part of a set QuPath does not list.
+     * other {@code .ome.tif} files, is part of a set QuPath does not list. A folder that cannot
+     * be listed counts as having companions, so the file is not offered.
      */
     static boolean hasCompanions(Path path, String ext) {
         if (!ext.equals(".tif") && !ext.equals(".tiff")) {

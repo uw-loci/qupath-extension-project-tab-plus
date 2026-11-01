@@ -34,9 +34,10 @@ import qupath.lib.projects.ProjectImageEntry;
 /**
  * The three checkbox-mode jobs: remove entries, clear saved data, export GeoJSON. Each runs
  * serially over its entries, reports progress, stops after the current entry when canceled, and
- * collects per-entry failures into one outcome. No dialogs, no FX; the caller closes viewers
- * first and reports afterwards. Every job logs one INFO line at start and one at the end, with
- * entry IDs rather than image names; the export also writes {@link ExportManifest#FILE_NAME}.
+ * collects per-entry failures into one outcome. No dialogs, no FX: call every job off the FX
+ * thread (it blocks on disk for the whole run) after closing the viewers that show its entries.
+ * Every job logs one INFO line at start and one at the end, with entry IDs rather than image
+ * names; the export also writes {@link ExportManifest#FILE_NAME}.
  */
 public final class BulkJobs {
 
@@ -339,8 +340,8 @@ public final class BulkJobs {
      * {@link ExportManifest#FILE_NAME} is written into the folder, replacing any earlier one.
      *
      * @param entries the entries
-     * @param liveObjects objects snapshotted from open viewers, by entry ID; used instead of the
-     *                    saved data for those entries
+     * @param liveObjects objects snapshotted from open viewers, by entry ID, used instead of the
+     *                    saved data for those entries; may be null
      * @param options export settings
      * @param progress progress callback
      * @param cancel polled before every entry

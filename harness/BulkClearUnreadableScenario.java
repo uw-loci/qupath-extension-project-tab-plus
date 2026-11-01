@@ -13,9 +13,9 @@ import qupath.lib.projects.ProjectImageEntry;
 
 /**
  * Bulk clear with one entry whose data.qpdata has been overwritten with text: that entry is
- * reported as failed with the read reason in D7, its data file and summary.json are left
- * untouched (QuPath would otherwise answer the failed read with an empty ImageData of type
- * UNSET, which a save would persist), and the readable entry is cleared.
+ * reported as failed with the read reason in the result dialog, its data file and summary.json
+ * are left untouched (QuPath would otherwise answer the failed read with an empty ImageData of
+ * type UNSET, which a save would persist), and the readable entry is cleared.
  *
  * <p>args: projectDir
  */

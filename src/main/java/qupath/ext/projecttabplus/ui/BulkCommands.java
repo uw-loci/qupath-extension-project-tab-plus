@@ -29,7 +29,8 @@ import qupath.lib.projects.ProjectImageEntry;
 
 /**
  * Orchestrates the checkbox-mode actions: confirm on the FX thread, close viewers, run the job
- * on {@code ptp-bulk} with the busy strip, then report.
+ * on {@code ptp-bulk} with the busy strip, then report. Every public method must be called on
+ * the FX thread.
  */
 public final class BulkCommands {
 
@@ -43,7 +44,7 @@ public final class BulkCommands {
         this.qupath = pane.qupath();
     }
 
-    /** D4 then remove the checked entries. */
+    /** Confirm, then remove the checked entries. */
     public void removeChecked() {
         removeEntries(pane.checkedEntries());
     }
@@ -83,7 +84,7 @@ public final class BulkCommands {
         });
     }
 
-    /** D5 then clear the saved data of the checked entries. */
+    /** Confirm, then clear the saved data of the checked entries. */
     public void clearCheckedData() {
         Project<BufferedImage> project = qupath.getProject();
         List<ProjectImageEntry<BufferedImage>> entries = pane.checkedEntries();
@@ -120,7 +121,7 @@ public final class BulkCommands {
         });
     }
 
-    /** D6 then export the checked entries to GeoJSON. */
+    /** Ask for export options, then export the checked entries to GeoJSON. */
     public void exportChecked() {
         Project<BufferedImage> project = qupath.getProject();
         List<ProjectImageEntry<BufferedImage>> entries = pane.checkedEntries();

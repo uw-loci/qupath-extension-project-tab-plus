@@ -18,9 +18,10 @@ import qupath.lib.projects.Project;
 import qupath.lib.projects.ProjectImageEntry;
 
 /**
- * Decides when the tree is rebuilt: project switch, mask-names toggle, the built-in tree's root
- * replacement (an implementation detail, used only as a debounced trigger), an explicit refresh,
- * and a cheap identity-and-size diff of the image list when the tab is selected.
+ * Decides when the tree is rebuilt. PROJECT, MANUAL, MASK_NAMES and PROFILE rebuild at once;
+ * FILTER is debounced 150 ms and ROOT_HOOK (the built-in tree replacing its root, used only as a
+ * trigger) 250 ms; TAB_SELECTED rebuilds only when the project's image list changed by identity
+ * or size since the last build.
  */
 public final class RefreshCoordinator {
 
@@ -52,7 +53,11 @@ public final class RefreshCoordinator {
     }
 
     /**
-     * @param reason why
+     * Ask for a rebuild. Safe from any thread. FILTER and ROOT_HOOK are debounced; TAB_SELECTED
+     * rebuilds only when the image list changed; every other reason cancels pending debounces
+     * and rebuilds now.
+     *
+     * @param reason what changed
      */
     public void request(Reason reason) {
         if (!Platform.isFxApplicationThread()) {

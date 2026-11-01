@@ -25,9 +25,10 @@ import qupath.lib.projects.Project;
 import qupath.lib.projects.ProjectImageEntry;
 
 /**
- * Remove the current image: eligibility check off the FX thread, D1, close every viewer
- * showing it (QuPath's own save prompt, cancel aborts), {@code imageData.close()}, the optional
- * file-to-trash step (D2, D3), then remove the entry, sync and refresh.
+ * Remove the current image: eligibility check off the FX thread, the remove confirmation, close
+ * every viewer showing it (QuPath's own save prompt; cancel aborts), {@code imageData.close()},
+ * the optional move-file-to-trash step with its own confirmation and failure dialog, then remove
+ * the entry, sync and refresh.
  */
 public final class RemoveImageCommand {
 

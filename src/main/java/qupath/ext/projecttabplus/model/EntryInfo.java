@@ -37,8 +37,8 @@ public record EntryInfo(String id, String name, Map<String, String> metadata, St
     /**
      * @param entry the project entry
      * @param imageType the image type from the saved summary, or null
-     * @param missingCheck says whether a URI points at a missing file; may touch the disk, so
-     *                     call this off the FX thread
+     * @param missingCheck says whether a URI points at a missing file, or null to skip the check;
+     *                     may touch the disk, so call this off the FX thread
      * @return a snapshot of the entry
      */
     public static EntryInfo from(ProjectImageEntry<?> entry, String imageType, Predicate<URI> missingCheck) {

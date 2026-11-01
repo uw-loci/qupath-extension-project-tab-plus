@@ -39,6 +39,7 @@ public final class ProfileStore {
     private static final String FILE_NAME = "profiles.json";
 
     private final Path file;
+    /** Serializes every read and write of {@link #file}. */
     private final Object lock = new Object();
     private volatile boolean lastLoadFoundFile;
 

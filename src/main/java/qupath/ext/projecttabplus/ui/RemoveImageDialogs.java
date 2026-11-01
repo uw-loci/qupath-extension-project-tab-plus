@@ -18,7 +18,10 @@ import qupath.ext.projecttabplus.core.DeleteEligibility;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.gui.prefs.PathPrefs;
 
-/** D1, D2 and D3: the remove-current-image confirmations. Every string is from the design. */
+/**
+ * The remove-current-image confirmations: D1 remove (data and file checkboxes), D2 move file to
+ * trash, D3 trash failed. D&lt;n&gt; is the prefix of each dialog's keys in strings.properties.
+ */
 public final class RemoveImageDialogs {
 
     /**

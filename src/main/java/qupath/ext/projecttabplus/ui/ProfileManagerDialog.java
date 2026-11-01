@@ -58,6 +58,7 @@ final class ProfileManagerDialog {
             rename.setDisable(sel == null || isDefault);
             delete.setDisable(sel == null || isDefault);
             reset.setDisable(!isDefault);
+            // Default stays at index 0 (ProfileStore.ensureDefault), so nothing moves above or into it.
             up.setDisable(i <= 1);
             down.setDisable(i < 1 || i >= pane.profiles().size() - 1);
         };
