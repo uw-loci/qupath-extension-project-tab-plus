@@ -18,9 +18,10 @@ not yet verified (see the README).
 - The current image marked with a tinted, bold row and an `[open]` chip, and
   **Jump to current image** (Ctrl+J) that expands the tree and scrolls to it, clearing a
   search that hides it.
-- Saved-data indicators on every thumbnail (top edge annotations, right edge detections,
-  bottom edge TMA cores) read from QuPath's `summary.json`, with a badge style and a legend;
-  the open image tracks the viewer with dashed edges while it has unsaved changes.
+- Saved-data indicators on every thumbnail (solid top edge annotations, hatched right edge
+  detections, solid bottom edge TMA cores) read from QuPath's `summary.json`, with a badge
+  style and a legend; the open image tracks the viewer with dashed edges and widely spaced
+  hatching while it has unsaved changes.
 - Named display profiles (grouping, expand-on-load, fields, thumbnail size, indicators)
   stored per user in `profiles.json`, with the last-used profile remembered per user and per
   project.

@@ -37,9 +37,10 @@ worth the screen space.
   lack a value.
 - **The current image marked** with a tinted, bold row and an `[open]` chip, and a
   **Jump to current image** button that expands the tree and scrolls to it.
-- **Saved-data indicators** on each thumbnail: top edge for annotations, right edge for
-  detections, cells and tiles, bottom edge for TMA cores. Dashed edges mean the current image
-  has unsaved changes.
+- **Saved-data indicators** on each thumbnail: solid top edge for annotations, hatched (`////`)
+  right edge for detections, cells and tiles, solid bottom edge for TMA cores. The hatching
+  tells the detections edge from the annotation edge by shape, not only by color. Dashed
+  edges and widely spaced hatching mean the current image has unsaved changes.
 - **Display profiles**: named, saved sets of grouping, fields, thumbnail size and indicators,
   stored per user and applied to any project.
 - **Remove current image**, with an optional, separately confirmed move of the image file to
@@ -110,8 +111,8 @@ entries at once.
 ![The Project+ tab at 300 pixels wide, light theme, profile By patient and stain, grouped two levels deep. Group rows read Patient: 12 (2), Stain: HE (1), Stain: PPM (1), Patient: 13 (2); four image rows, each thumbnail with a red top edge and a teal right edge; the toolbar shows the pin, grid, checkbox and refresh icons.](images/tab-grouped.png)
 
 *The Project+ tab grouped by `Patient` then `Stain`, under a saved profile. Each group row
-names its key and value and the number of images under it. The red top edge and teal right
-edge on each thumbnail mean that image's saved data holds annotations and detections. No
+names its key and value and the number of images under it. The red top edge and hatched teal
+right edge on each thumbnail mean that image's saved data holds annotations and detections. No
 image is open, so the Jump button (the pin) is greyed.*
 
 ## Where things are

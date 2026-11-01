@@ -48,8 +48,16 @@ public final class ThemeColors {
     /** Informational callout background; the current-image row tint. */
     public static final String INFO_BG = ladder("#2C3E57", "#E8F0FE");
 
+    private static final String BORDER_DARK = "#5A5A5A";
+    private static final String BORDER_LIGHT = "#CCCCCC";
+
     /** Hairline borders around cards and boxes. */
-    public static final String BORDER = ladder("#5A5A5A", "#CCCCCC");
+    public static final String BORDER = ladder(BORDER_DARK, BORDER_LIGHT);
+
+    /** @return the hairline border color as a paint for canvas drawing, for the current theme */
+    public static Color borderPaint() {
+        return Color.web(isDark() ? BORDER_DARK : BORDER_LIGHT);
+    }
 
     private static final String DETECTIONS_DARK = "#80CBC4";
     private static final String DETECTIONS_LIGHT = "#00796B";

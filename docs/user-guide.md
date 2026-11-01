@@ -56,7 +56,7 @@ to turn that off).
 ![The Project+ tab at 300 pixels wide, light theme, profile By patient and stain, grouped two levels deep. Group rows read Patient: 12 (2), Stain: HE (1), Stain: PPM (1), Patient: 13 (2); four image rows, each thumbnail with a red top edge and a teal right edge; the toolbar shows the pin, grid, checkbox and refresh icons.](../images/tab-grouped.png)
 
 *The tab grouped by `Patient` then `Stain`. Each group row names its key and value and the
-number of images under it. The red top edge and teal right edge on each thumbnail show that
+number of images under it. The red top edge and hatched teal right edge on each thumbnail show that
 its saved data holds annotations and detections. No image is open, so the Jump button is
 greyed; hover it and a tooltip says `No image is open.`*
 
@@ -239,15 +239,18 @@ marks the same image on the built-in tab in its own way; the two do not interact
 ### Read the saved-data indicators
 
 With the default **Thumbnail edges** style, each thumbnail can carry up to three colored
-edges, three pixels wide, drawn inside the thumbnail:
+edges drawn inside the thumbnail:
 
-- **top edge** = annotations present,
-- **right edge** = detections, cells or tiles present,
-- **bottom edge** = TMA cores present.
+- **top edge** (solid line, 3 px) = annotations present,
+- **right edge** (diagonal hatching `////`, 5 px) = detections, cells or tiles present,
+- **bottom edge** (solid line, 3 px) = TMA cores present.
 
 The left edge is never used. Annotation and TMA edges use the colors QuPath draws those
 objects in; the detections edge is a fixed teal, because QuPath has no distinct default color
-for detections. Position is the primary cue; color only reinforces it.
+for detections. Position is the primary cue; color only reinforces it. The detections edge is
+hatched rather than solid so that it differs from the annotation edge by shape, not only by
+color: with QuPath's default red for annotations, a solid red line and a solid teal line sit
+too close for red-green color vision.
 
 With the **Badges** style, a second line under the name shows letter chips with counts:
 `A 12   D 4.3k   T 96`, with `--` for an absent type and an asterisk after a count that comes
@@ -260,10 +263,11 @@ Click the **Legend** button (or gear > **Indicator legend...**) for the
 ```
 Thumbnail edges and badges show what each image's SAVED data holds.
   Top edge / A   = annotations
-  Right edge / D = detections, cells and tiles
+  Right edge (hatched) / D = detections, cells and tiles
   Bottom edge / T = TMA cores
-Solid = from the last save. Dashed edge or * = the image is open and
-has unsaved changes, so the counts come from the viewer.
+Solid edge or close hatching = from the last save. Dashed edge, widely
+spaced hatching or * = the image is open and has unsaved changes, so the
+counts come from the viewer.
 No edges: no saved data (italic name), no objects, or not loaded yet.
 Hover a row to see the exact counts.
 Search tip: has=annotations, has=detections, has_data=false.
@@ -273,7 +277,8 @@ Notes:
 
 - The indicators describe **saved** data: what was on disk the last time that image was saved.
   The current image is the exception: its edges follow the live objects in the viewer and turn
-  **dashed** as soon as there are unsaved changes, then solid again when you save.
+  **dashed** (the hatched detections edge spreads its marks twice as far apart) as soon as
+  there are unsaved changes, then solid again when you save.
 - Three states look alike at a glance (no edges) and the row tooltip tells them apart:
   `No saved data` (also italic name), `Saved data: no objects`, and `Object summary not loaded
   yet`. Project+ never opens an entry's data file to find out, because that can take seconds
@@ -728,7 +733,7 @@ delete it by hand on the share, knowing it will not be recoverable. A mapped net
 **The indicators are stale, or a row has no edges although I annotated it.**
 Indicators read the summary QuPath writes when an image is saved, so they show the state at
 the last save. The current image is the exception and tracks the viewer, with dashed edges
-while there are unsaved changes. Save the image. Hover the row: `No saved data`,
+and widely spaced hatching while there are unsaved changes. Save the image. Hover the row: `No saved data`,
 `Saved data: no objects` and `Object summary not loaded yet` are three different things that
 all look like no edges. An entry saved by a QuPath version that did not write the summary
 shows no edges until its next save.

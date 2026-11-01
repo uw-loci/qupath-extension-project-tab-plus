@@ -346,8 +346,8 @@ final class EntryTreeCell extends TreeCell<Row> {
             gc.strokeLine(0, EDGE / 2, w, EDGE / 2);
         }
         if (presence.hasDetections()) {
-            gc.setStroke(ThemeColors.detectionsPaint());
-            gc.strokeLine(w - EDGE / 2, 0, w - EDGE / 2, h);
+            Hatch.paint(gc, w - Hatch.STRIP_WIDTH, 0, Hatch.STRIP_WIDTH, h, ThemeColors.detectionsPaint(),
+                    presence.unsaved());
         }
         if (presence.hasTmaCores()) {
             gc.setStroke(ColorToolsFX.getCachedColor(PathPrefs.colorTMAProperty().get()));
