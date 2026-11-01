@@ -119,10 +119,12 @@ Everything in `model/` and `core/` except the two command classes is plain Java 
   `DeleteEligibility`, `SummaryReader` and the export naming.
 - End-to-end scenarios live in `harness/` in this repo and run through the monorepo's
   `tools/qp-harness` (`bin/qp-gui` drives a hidden `QuPathGUI`; `bin/qp-dataset synthetic-tme`
-  builds a ground-truthed project to run them on). Scenarios planned for this release: tab
-  insert / hide / restore, remove-current with a dirty viewer (cancel path), bulk clear with
-  one open entry, export with a name collision, profile round-trip through `profiles.json`.
-  <!-- TODO(dev): list the scenario class names once they exist in harness/. -->
+  builds a ground-truthed project to run them on). The five scenarios, each a class in
+  `harness/` sharing `HarnessSupport.java`: `TabInsertHideRestoreScenario`,
+  `RemoveCurrentDirtyCancelScenario` (dirty viewer, cancel path), `BulkClearOpenEntryScenario`,
+  `ExportNameCollisionScenario`, `ProfileRoundTripScenario` (through `profiles.json`). Run one
+  with `tools/qp-harness/bin/qp-gui harness/<Scenario>.java . <project.qpproj>` from this
+  repo (the second argument is the extension repo or jar).
 - Checks a human still has to make (trash support on Windows and macOS, dashed edges on a
   HiDPI display, summary sweep timing on a network share) are queued in the monorepo's
   `claude-reports/MANUAL_TEST_QUEUE.md` under this repo's name.

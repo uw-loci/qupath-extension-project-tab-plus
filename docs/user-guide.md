@@ -251,9 +251,9 @@ Notes:
   `No saved data` (also italic name), `Saved data: no objects`, and `Object summary not loaded
   yet`. Project+ never opens an entry's data file to find out, because that can take seconds
   per image; it reads only the small summary QuPath writes at save time.
-- An entry saved by a QuPath version that did not yet write that summary shows no edges until
-  it is saved again.
-  <!-- TODO(dev): confirm which QuPath version first wrote summary.json, so this line can name it. -->
+- QuPath has written that summary at every save since version 0.2.0, so only an entry that
+  was never saved, or last saved by a QuPath older than 0.2.0, shows no edges until it is saved
+  again.
 - If the summary exists but cannot be read, the tooltip says
   `Saved-data summary could not be read; see log`.
 
@@ -590,9 +590,10 @@ all look like no edges. An entry saved by a QuPath version that did not write th
 shows no edges until its next save.
 
 **The Project+ tab is gone after undocking it.**
-Dragging the tab out opens it in its own window. Closing that window puts the tab back into
-the analysis pane.
-<!-- TODO(dev): confirm what closing the undocked window does with FXUtils.makeTabUndockable in 0.7 (re-dock vs. close), and whether a menu item is needed to bring the tab back; neither 02_design nor 02a says. -->
+Right-clicking the tab and choosing **Undock tab** moves it into its own window; the tab
+keeps working there. Closing that window puts the tab back into the analysis pane, as the last
+tab rather than in its original place, and you can drag it back next to Project. No menu item
+is needed.
 
 **The built-in Project tab is hidden and Active Image Helper's menu items are missing.**
 The helper looks for the built-in tab once; a hidden tab is not found. Tick gear >
