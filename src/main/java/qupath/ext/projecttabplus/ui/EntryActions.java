@@ -32,6 +32,9 @@ import qupath.lib.plugins.parameters.ParameterList;
 import qupath.lib.projects.Project;
 import qupath.lib.projects.ProjectImageEntry;
 
+// Re-implemented from QuPath's ProjectBrowser (GPL-3.0, github.com/qupath/qupath, 0.7.0),
+// modified 2026-10/11.
+
 /**
  * The per-entry actions the built-in tab offers (duplicate, rename, add metadata, edit
  * description, refresh thumbnail, open directory), re-implemented against the public API so the

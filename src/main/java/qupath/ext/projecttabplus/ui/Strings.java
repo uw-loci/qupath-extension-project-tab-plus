@@ -2,6 +2,9 @@ package qupath.ext.projecttabplus.ui;
 
 import java.util.ResourceBundle;
 
+// Adapted from qupath-extension-class-visibility (Apache-2.0,
+// github.com/uw-loci/qupath-extension-class-visibility), modified 2026-10/11.
+
 /**
  * Access to the extension's display strings. Every user-visible string comes from
  * {@code strings.properties}, so the whole shipped vocabulary can be reviewed in one file.

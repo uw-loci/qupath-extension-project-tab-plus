@@ -3,7 +3,10 @@ package qupath.ext.projecttabplus.ui;
 import javafx.scene.Node;
 import javafx.scene.control.TitledPane;
 
-/** Consistently styled collapsible sections. Lifted from QuIET. */
+// Adapted from qupath-extension-image-export-toolkit (QuIET, Apache-2.0,
+// github.com/uw-loci/qupath-extension-image-export-toolkit), modified 2026-10/11.
+
+/** Consistently styled collapsible sections. */
 final class SectionBuilder {
 
     private SectionBuilder() {

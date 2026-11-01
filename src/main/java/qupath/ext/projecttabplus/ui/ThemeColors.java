@@ -5,9 +5,12 @@ import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import qupath.lib.gui.prefs.QuPathStyleManager;
 
+// Adapted from qupath-extension-image-export-toolkit (QuIET, Apache-2.0,
+// github.com/uw-loci/qupath-extension-image-export-toolkit), modified 2026-10/11.
+
 /**
  * Theme-aware colors as CSS fragments: each is a {@code ladder()} on the theme's
- * {@code -fx-background}, so it follows a theme switch live. Lifted from QuIET.
+ * {@code -fx-background}, so it follows a theme switch live.
  */
 public final class ThemeColors {
 

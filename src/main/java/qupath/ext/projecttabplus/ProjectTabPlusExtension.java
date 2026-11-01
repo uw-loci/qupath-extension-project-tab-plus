@@ -21,6 +21,9 @@ import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.UserDirectoryManager;
 import qupath.lib.gui.extensions.QuPathExtension;
 
+// Tab wiring adapted from qupath-extension-class-visibility (Apache-2.0,
+// github.com/uw-loci/qupath-extension-class-visibility), modified 2026-10/11.
+
 /**
  * Entry point: creates the Project+ tab beside QuPath's own Project tab, registers the
  * preferences, and applies the "hide built-in tab" preference in a later FX pulse than the
