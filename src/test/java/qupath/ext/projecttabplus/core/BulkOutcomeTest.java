@@ -18,7 +18,7 @@ class BulkOutcomeTest {
         assertTrue(new Outcome(3, 0, 3, 2, List.of(), false).onlySkippedExisting());
         assertFalse(new Outcome(3, 1, 2, 2, List.of(), false).onlySkippedExisting());
         assertFalse(new Outcome(3, 0, 3, 0, List.of(), false).onlySkippedExisting());
-        assertFalse(new Outcome(3, 0, 2, 2, List.of(new Failure("x", "boom")), false).onlySkippedExisting());
+        assertFalse(new Outcome(3, 0, 2, 2, List.of(new Failure("1", "x", "boom")), false).onlySkippedExisting());
         assertFalse(new Outcome(0, 0, 0, 0, List.of(), false).onlySkippedExisting());
     }
 

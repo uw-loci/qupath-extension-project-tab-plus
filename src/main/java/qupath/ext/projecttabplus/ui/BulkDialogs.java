@@ -25,6 +25,8 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 import qupath.ext.projecttabplus.core.BulkJobs;
+import qupath.ext.projecttabplus.core.ExportNaming;
+import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.projects.ProjectImageEntry;
 
@@ -132,15 +134,25 @@ final class BulkDialogs {
         Label folderState = new Label();
         folderState.setWrapText(true);
         ThemeColors.textFill(folderState, ThemeColors.WARNING);
-        Label onePer = new Label(Strings.get("d6.oneFilePer"));
+        Label onePer = new Label();
+        onePer.setWrapText(true);
+        // The four options are remembered between sessions; Compress is off by default, as in
+        // QuPath's own export.
         CheckBox compress = new CheckBox(Strings.get("d6.compress"));
-        compress.setSelected(true);
+        compress.setSelected(ProjectTabPlusPreferences.exportCompressProperty().get());
         compress.setTooltip(Tooltips.of(Strings.get("d6.compress.tooltip")));
+        Runnable updateOnePer = () -> onePer.setText(Strings.format(
+                masked ? "d6.oneFilePerMasked" : "d6.oneFilePer", ExportNaming.extension(compress.isSelected())));
+        compress.selectedProperty().addListener((obs, o, nv) -> updateOnePer.run());
+        updateOnePer.run();
         CheckBox pretty = new CheckBox(Strings.get("d6.pretty"));
+        pretty.setSelected(ProjectTabPlusPreferences.exportPrettyPrintProperty().get());
         pretty.setTooltip(Tooltips.of(Strings.get("d6.pretty.tooltip")));
         CheckBox exclude = new CheckBox(Strings.get("d6.excludeMeasurements"));
+        exclude.setSelected(ProjectTabPlusPreferences.exportExcludeMeasurementsProperty().get());
         exclude.setTooltip(Tooltips.of(Strings.get("d6.excludeMeasurements.tooltip")));
-        VBox box = new VBox(8, folderRow, folderState, onePer, compress, pretty, exclude);
+        VBox box = new VBox(8, folderRow, folderState, onePer, compress, pretty, exclude,
+                wrapped(Strings.get("d6.manifestNote")));
         if (noData > 0) {
             box.getChildren().add(wrapped(Strings.plural("d6.noDataNote.one", "d6.noDataNote.many", noData)));
         }

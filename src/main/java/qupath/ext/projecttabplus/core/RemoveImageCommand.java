@@ -114,16 +114,21 @@ public final class RemoveImageCommand {
             closed.add(imageData);
         }
         String name = entry.getImageName();
+        String id = entry.getID();
         RemoveChoice c = choice.get();
         pane.bulkExecutor().submit(() -> {
+            long start = System.currentTimeMillis();
+            logger.info("Project+ remove current image started: entry {}, data folder to trash: {}, file to trash: {}",
+                    id, c.dataToTrash(), c.fileToTrash() && eligibility.isEligible());
             for (ImageData<BufferedImage> imageData : closed) {
                 try {
                     imageData.close();
                 } catch (Exception e) {
-                    logger.warn("Error closing image data for {}: {}", name, e.getMessage());
+                    logger.warn("Error closing image data of entry {}: {}", id, e.getMessage());
                 }
             }
             String fileStatus = null;
+            String fileOutcome = "not offered";
             if (c.fileToTrash() && eligibility.isEligible()) {
                 Path path = eligibility.path();
                 boolean trash = callFx(() -> RemoveImageDialogs.showMoveFileToTrash(
@@ -132,33 +137,55 @@ public final class RemoveImageCommand {
                     FileTrash.Result result = FileTrash.moveToTrash(path);
                     if (result.outcome() == FileTrash.Outcome.MOVED) {
                         fileStatus = Strings.format("status.removedFileTrashed", name);
+                        fileOutcome = "moved to trash";
                     } else {
                         boolean removeAnyway = callFx(() -> RemoveImageDialogs.showTrashFailed(
                                 qupath.getStage(), path, result.detail()));
                         if (!removeAnyway) {
+                            logger.info("Project+ remove current image canceled: entry {}, file kept ({})",
+                                    id, result.outcome());
                             Platform.runLater(() -> pane.setTransientStatus(Strings.get("status.removalCanceled"), true));
                             return;
                         }
                         fileStatus = Strings.format("status.removedFileKept", name, path);
+                        fileOutcome = "kept, trash failed (" + result.outcome() + ")";
                     }
                 } else {
                     fileStatus = Strings.format("status.removedFileKept", name, path);
+                    fileOutcome = "kept by choice";
                 }
             }
-            String status = fileStatus != null ? fileStatus : Strings.format("status.removed", name);
             try {
                 project.removeImage(entry, c.dataToTrash());
                 project.syncChanges();
             } catch (IOException | RuntimeException e) {
-                logger.error("Could not remove {}: {}", name, e.getMessage(), e);
-                Platform.runLater(() -> Dialogs.showErrorNotification(Strings.get("notify.title"), e.getMessage()));
+                logger.error("Could not remove entry {}: {}", id, e.getMessage(), e);
+                Platform.runLater(() -> Dialogs.showErrorNotification(Strings.get("notify.title"),
+                        Strings.get("notify.removeFailed")));
                 return;
             }
-            pane.checkedIds().remove(entry.getID());
+            String dataOutcome = "kept by choice";
+            String status = fileStatus != null ? fileStatus : Strings.format("status.removed", name);
+            if (c.dataToTrash()) {
+                if (BulkJobs.dataFolderRemains(entry)) {
+                    dataOutcome = "kept, trash failed";
+                    logger.warn("Data folder of entry {} was not moved to the trash; it remains at {}",
+                            id, entry.getEntryPath());
+                    if (fileStatus == null) {
+                        status = Strings.format("status.removedDataKept", name, entry.getEntryPath());
+                    }
+                } else {
+                    dataOutcome = "moved to trash";
+                }
+            }
+            logger.info("Project+ remove current image finished: entry {} removed, data folder {}, file {}, elapsed={} ms",
+                    id, dataOutcome, fileOutcome, System.currentTimeMillis() - start);
+            pane.checkedIds().remove(id);
+            String finalStatus = status;
             Platform.runLater(() -> {
                 qupath.refreshProject();
                 pane.refreshAfterChange();
-                pane.setTransientStatus(status, false);
+                pane.setTransientStatus(finalStatus, false);
             });
         });
     }

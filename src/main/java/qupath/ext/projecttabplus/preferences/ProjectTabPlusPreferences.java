@@ -32,6 +32,15 @@ public final class ProjectTabPlusPreferences {
             PathPrefs.createPersistentPreference(PREFIX + "selectTabOnStartup", true);
     private static final StringProperty lastProfile =
             PathPrefs.createPersistentPreference(PREFIX + "lastProfile", "Default");
+    // The four D6 export options, remembered between sessions; not shown in the preference pane.
+    private static final StringProperty exportFolder =
+            PathPrefs.createPersistentPreference(PREFIX + "export.folder", "");
+    private static final BooleanProperty exportCompress =
+            PathPrefs.createPersistentPreference(PREFIX + "export.compress", false);
+    private static final BooleanProperty exportPrettyPrint =
+            PathPrefs.createPersistentPreference(PREFIX + "export.prettyPrint", false);
+    private static final BooleanProperty exportExcludeMeasurements =
+            PathPrefs.createPersistentPreference(PREFIX + "export.excludeMeasurements", false);
 
     private static boolean installed;
 
@@ -96,5 +105,25 @@ public final class ProjectTabPlusPreferences {
     /** @return the name of the last profile used */
     public static StringProperty lastProfileProperty() {
         return lastProfile;
+    }
+
+    /** @return the last GeoJSON export folder, or empty */
+    public static StringProperty exportFolderProperty() {
+        return exportFolder;
+    }
+
+    /** @return whether the last export wrote {@code .geojson.gz}; off by default, like QuPath */
+    public static BooleanProperty exportCompressProperty() {
+        return exportCompress;
+    }
+
+    /** @return whether the last export indented the JSON */
+    public static BooleanProperty exportPrettyPrintProperty() {
+        return exportPrettyPrint;
+    }
+
+    /** @return whether the last export dropped per-object measurements */
+    public static BooleanProperty exportExcludeMeasurementsProperty() {
+        return exportExcludeMeasurements;
     }
 }

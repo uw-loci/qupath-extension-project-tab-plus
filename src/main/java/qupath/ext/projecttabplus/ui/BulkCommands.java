@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.projecttabplus.core.BulkJobs;
 import qupath.ext.projecttabplus.core.BulkJobs.Outcome;
+import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.ext.projecttabplus.ui.BulkDialogs.Kind;
 import qupath.fx.dialogs.Dialogs;
 import qupath.fx.utils.FXUtils;
@@ -36,7 +37,6 @@ public final class BulkCommands {
 
     private final ProjectTabPlusPane pane;
     private final QuPathGUI qupath;
-    private Path lastExportFolder;
 
     BulkCommands(ProjectTabPlusPane pane) {
         this.pane = pane;
@@ -147,14 +147,18 @@ public final class BulkCommands {
                 noData++;
             }
         }
-        Path initial = lastExportFolder != null ? lastExportFolder : projectDirectory(project);
+        Path initial = lastExportFolder();
+        if (initial == null) {
+            initial = projectDirectory(project);
+        }
+        boolean masked = PathPrefs.maskImageNamesProperty().get();
         Optional<BulkDialogs.ExportChoice> choice = BulkDialogs.exportOptions(qupath.getStage(), entries.size(),
-                noData, unsaved, PathPrefs.maskImageNamesProperty().get(), initial);
+                noData, unsaved, masked, initial);
         if (choice.isEmpty()) {
             return;
         }
         BulkDialogs.ExportChoice c = choice.get();
-        lastExportFolder = c.folder();
+        rememberExportChoice(c);
         // Snapshot the live objects of open images on the FX thread before the job starts.
         Map<String, Collection<PathObject>> live = new HashMap<>();
         for (Map.Entry<String, ImageData<BufferedImage>> e : openData.entrySet()) {
@@ -162,7 +166,7 @@ public final class BulkCommands {
         }
         pane.resetCancel();
         pane.bulkExecutor().submit(() -> {
-            Map<String, String> names = BulkJobs.plannedFileNames(entries, c.compress());
+            Map<String, String> names = BulkJobs.plannedFileNames(entries, c.compress(), masked);
             int existing = BulkJobs.countExisting(c.folder(), names.values());
             BulkJobs.OverwritePolicy policy = BulkJobs.OverwritePolicy.OVERWRITE;
             if (existing > 0) {
@@ -180,7 +184,7 @@ public final class BulkCommands {
                 policy = p.get();
             }
             BulkJobs.ExportOptions options = new BulkJobs.ExportOptions(c.folder(), c.compress(), c.prettyPrint(),
-                    c.excludeMeasurements(), policy);
+                    c.excludeMeasurements(), policy, masked);
             Outcome outcome = BulkJobs.exportGeoJson(entries, live, options,
                     pane.busyProgress("busy.exporting"), pane::isCancelRequested);
             Platform.runLater(() -> {
@@ -188,6 +192,27 @@ public final class BulkCommands {
                 report(Kind.EXPORT, outcome, c.folder());
             });
         });
+    }
+
+    /** @return the remembered export folder, or null when none is stored or it no longer exists */
+    private static Path lastExportFolder() {
+        String stored = ProjectTabPlusPreferences.exportFolderProperty().get();
+        if (stored == null || stored.isBlank()) {
+            return null;
+        }
+        try {
+            Path p = Path.of(stored);
+            return java.nio.file.Files.isDirectory(p) ? p : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static void rememberExportChoice(BulkDialogs.ExportChoice c) {
+        ProjectTabPlusPreferences.exportFolderProperty().set(c.folder().toString());
+        ProjectTabPlusPreferences.exportCompressProperty().set(c.compress());
+        ProjectTabPlusPreferences.exportPrettyPrintProperty().set(c.prettyPrint());
+        ProjectTabPlusPreferences.exportExcludeMeasurementsProperty().set(c.excludeMeasurements());
     }
 
     /** The project folder: {@code getPath()} is the .qpproj file for a DefaultProject. */
