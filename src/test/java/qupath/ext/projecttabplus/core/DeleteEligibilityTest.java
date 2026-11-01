@@ -62,6 +62,23 @@ class DeleteEligibilityTest {
     }
 
     @Test
+    void networkLocationsAreRefusedBecauseTheyHaveNoTrash() throws Exception {
+        // A file: URI with a host part is a UNC share on Windows.
+        DeleteEligibility e = DeleteEligibility.check(List.of(new URI("file://server/share/x.svs")), 0);
+        assertEquals(Reason.NETWORK, e.reason());
+        assertFalse(e.isEligible());
+        assertTrue(DeleteEligibility.isNetworkLocation(new URI("file://server/share/x.svs")));
+        assertFalse(DeleteEligibility.isNetworkLocation(new URI("file:///C:/data/x.svs")));
+        assertFalse(DeleteEligibility.isNetworkLocation(dir.resolve("x.svs").toUri()));
+        // The same share as a path string, the form Path.of(uri) yields on Windows.
+        assertTrue(DeleteEligibility.isUncPath(Path.of("\\\\server\\share\\x.svs")));
+        assertFalse(DeleteEligibility.isUncPath(Path.of("C:\\data\\x.svs")));
+        assertFalse(DeleteEligibility.isUncPath(dir.resolve("x.svs")));
+        // Mapped drive letters are deliberately not detected; they read as local.
+        assertFalse(DeleteEligibility.isUncPath(Path.of("Z:\\share\\x.svs")));
+    }
+
+    @Test
     void sharedCountComesFromTheOtherEntriesUris() throws Exception {
         Path shared = touch("shared.svs");
         Path other = touch("other.svs");

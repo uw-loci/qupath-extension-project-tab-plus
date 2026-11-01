@@ -92,6 +92,7 @@ public final class RemoveImageDialogs {
             case SHARED_URI -> Strings.plural("d1.reason.shared.one", "d1.reason.shared.many", e.sharedCount());
             case NOT_FOUND -> Strings.get("d1.reason.notFound");
             case NOT_LOCAL, NO_URI -> Strings.get("d1.reason.notLocal");
+            case NETWORK -> Strings.get("d1.reason.network");
             case MULTIPLE_URIS -> Strings.get("d1.reason.multiple");
         };
     }

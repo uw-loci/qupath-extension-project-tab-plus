@@ -24,7 +24,7 @@ public record DeleteEligibility(Reason reason, Path path, String extension, int 
 
     /** The verdicts. */
     public enum Reason {
-        ELIGIBLE, NO_URI, MULTIPLE_URIS, NOT_LOCAL, NOT_FOUND, COMPANION_FORMAT, SHARED_URI
+        ELIGIBLE, NO_URI, MULTIPLE_URIS, NOT_LOCAL, NETWORK, NOT_FOUND, COMPANION_FORMAT, SHARED_URI
     }
 
     /** Formats stored as exactly one file. */
@@ -52,11 +52,17 @@ public record DeleteEligibility(Reason reason, Path path, String extension, int 
         if (!"file".equalsIgnoreCase(uri.getScheme())) {
             return new DeleteEligibility(Reason.NOT_LOCAL, null, "", 0);
         }
+        if (isNetworkLocation(uri)) {
+            return new DeleteEligibility(Reason.NETWORK, null, "", 0);
+        }
         Path path;
         try {
             path = Path.of(uri);
         } catch (RuntimeException e) {
             return new DeleteEligibility(Reason.NOT_LOCAL, null, "", 0);
+        }
+        if (isUncPath(path)) {
+            return new DeleteEligibility(Reason.NETWORK, path, "", 0);
         }
         String ext = extensionOf(path.getFileName().toString());
         if (!Files.isRegularFile(path)) {
@@ -87,6 +93,27 @@ public record DeleteEligibility(Reason reason, Path path, String extension, int 
             }
         }
         return check(uris, shared);
+    }
+
+    /**
+     * A {@code file:} URI with a host part ({@code file://server/share/x.svs}) names a network
+     * location, which has no Recycle Bin: Windows deletes such a file for good instead.
+     *
+     * @param uri a {@code file:} URI
+     * @return true when the URI carries an authority
+     */
+    static boolean isNetworkLocation(URI uri) {
+        String authority = uri.getAuthority();
+        return authority != null && !authority.isEmpty();
+    }
+
+    /**
+     * @param path a resolved path
+     * @return true when its string form is a UNC path ({@code \\server\share\...}); a mapped
+     *         drive letter is not detected
+     */
+    static boolean isUncPath(Path path) {
+        return path.toString().startsWith("\\\\");
     }
 
     /**
