@@ -345,7 +345,8 @@ final class BulkDialogs {
                 setTooltip(empty || item == null ? null : Tooltips.of(item.fullName()));
             }
         });
-        list.setPrefHeight(24.0 * Math.min(LIST_ROWS, Math.max(2, entries.size())) + 4);
+        // Room for a horizontal scroll bar: full names are often wider than the list.
+        list.setPrefHeight(24.0 * Math.min(LIST_ROWS, Math.max(2, entries.size())) + 20);
         list.setPadding(Insets.EMPTY);
         list.setTooltip(Tooltips.of(shortNames.isEmpty() ? Strings.get("d4.list.tooltip")
                 : Strings.get("d4.list.tooltip") + " " + Strings.get("d4.list.tooltip.shortNames")));

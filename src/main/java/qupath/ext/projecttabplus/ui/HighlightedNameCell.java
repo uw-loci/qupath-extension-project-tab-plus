@@ -152,12 +152,18 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
             items.add(off);
             return items;
         }
+        // A click on a separator takes the piece after it (or before it, at the end).
         int[] piece = null;
+        int[] before = null;
         for (int[] p : pieces(full)) {
-            if (index >= p[0] && index < p[1]) {
+            if (index >= p[0] && index < p[1] || p[0] > index) {
                 piece = p;
                 break;
             }
+            before = p;
+        }
+        if (piece == null) {
+            piece = before;
         }
         if (piece == null) {
             return items;
@@ -191,7 +197,7 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
         hideAnywhere.setOnAction(e -> dialog.insertRule(dialog.workingRules().size(), new HideTextRule(hideText, false, true)));
         items.add(hideAnywhere);
 
-        MenuItem hideNumber = hidePieceItem(dialog, full, index);
+        MenuItem hideNumber = hidePieceItem(dialog, full, piece[0]);
         if (hideNumber != null) {
             items.add(hideNumber);
         }

@@ -205,6 +205,9 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         editorScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         editorHolder.setPadding(new Insets(4, 8, 4, 8));
         editorHolder.setAlignment(Pos.TOP_LEFT);
+        // A small preferred width: the editor takes the spare width without squeezing the rule list.
+        editorScroll.setPrefWidth(420);
+        editorScroll.setMinWidth(300);
         HBox.setHgrow(editorScroll, Priority.ALWAYS);
         HBox band = new HBox(8, ruleColumn, editorScroll);
         band.setPadding(new Insets(6));
@@ -1098,7 +1101,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
     void show() {
         if (!stage.isShowing()) {
             stage.show();
-            split.setDividerPositions(240.0 / Math.max(1, split.getHeight()));
+            split.setDividerPositions(270.0 / Math.max(1, split.getHeight()));
         } else {
             stage.toFront();
         }

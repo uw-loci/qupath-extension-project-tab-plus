@@ -492,8 +492,8 @@ final class NameRuleEditors {
             Label sampleHint = new Label(Strings.get("names.pieces.sampleHint"));
             sampleHint.setMinWidth(Region.USE_PREF_SIZE);
             ThemeColors.textFill(sampleHint, ThemeColors.MUTED);
-            HBox sampleRow = new HBox(8, sampleLabel, sampleHint);
-            sampleRow.setAlignment(Pos.CENTER_LEFT);
+            sampleLabel.setWrapText(false);
+            FlowPane sampleRow = new FlowPane(8, 2, sampleLabel, sampleHint);
             show.setOnAction(e -> host.showFilter(NameRulesDialog.Filter.FEWER));
             warn(varies, true);
             warn(problem, true);
@@ -505,7 +505,7 @@ final class NameRuleEditors {
                         k.keepLater(), k.on()));
             });
             box.getChildren().addAll(sepRow, sampleRow, wrapped(Strings.get("names.pieces.pick")), chips, notAll,
-                    problem, new HBox(4, fewer, show), range, wrapped(Strings.get("names.pieces.order")), varies,
+                    problem, new VBox(0, fewer, show), range, wrapped(Strings.get("names.pieces.order")), varies,
                     example);
             loading = true;
             separator.setValue(((KeepPiecesRule) rule()).separator());
