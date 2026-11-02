@@ -983,7 +983,7 @@ public final class ProjectTabPlusPane extends BorderPane {
      * @param set the rules and their flag
      * @param onSaved receives on the FX thread whether the rules reached the project file; may be null
      */
-    void applyNameRules(NameRuleSet set, Consumer<Boolean> onSaved) {
+    public void applyNameRules(NameRuleSet set, Consumer<Boolean> onSaved) {
         NameRuleSet s = set.isEmpty() ? NameRuleSet.EMPTY : set;
         nameRules.set(s);
         syncToggle();
@@ -1039,7 +1039,7 @@ public final class ProjectTabPlusPane extends BorderPane {
     }
 
     /** @return the rules applied to the tab */
-    ObjectProperty<NameRuleSet> nameRulesProperty() {
+    public ObjectProperty<NameRuleSet> nameRulesProperty() {
         return nameRules;
     }
 
@@ -2051,7 +2051,7 @@ public final class ProjectTabPlusPane extends BorderPane {
     }
 
     /** Open the name rules window, or bring it to the front. */
-    void showNameRules() {
+    public void showNameRules() {
         if (qupath.getProject() == null || PathPrefs.maskImageNamesProperty().get()) {
             return;
         }
