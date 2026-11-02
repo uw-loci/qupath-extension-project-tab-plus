@@ -41,9 +41,9 @@ worth the screen space.
   the theme, or a color of your own from **Set current image highlight color...** in the
   right-click or gear menu (also in Edit > Preferences > Project+).
 - **Saved-data indicators** on each thumbnail: solid top edge for annotations, hatched (`////`)
-  right edge for detections, cells and tiles, solid bottom edge for TMA cores. The hatching
-  tells the detections edge from the annotation edge by shape, not only by color. Dashed
-  edges and widely spaced hatching mean the current image has unsaved changes.
+  right edge for detections, cells and tiles, a row of half circles (half TMA cores) along the
+  bottom for TMA cores. The three differ by shape, not only by color. A dashed edge, widely
+  spaced hatching and outlined half circles mean the current image has unsaved changes.
 - **Display profiles**: named, saved sets of grouping, fields, thumbnail size and indicators,
   stored per user and applied to any project.
 - **Remove current image**, with an optional, separately confirmed move of the image file to

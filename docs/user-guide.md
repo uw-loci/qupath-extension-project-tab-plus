@@ -320,7 +320,7 @@ edges drawn inside the thumbnail:
 
 - **top edge** (solid line, 3 px) = annotations present,
 - **right edge** (diagonal hatching `////`, 5 px) = detections, cells or tiles present,
-- **bottom edge** (solid line, 3 px) = TMA cores present.
+- **bottom edge** (a row of filled half circles, like half TMA cores, 3.5 px high at Small, 5 px at Large) = TMA cores present.
 
 The counts come from the object counts QuPath writes into its summary at save time, one per
 object class: *Annotations*, *Detections*, *Cells*, *Tiles*, *TMA cores*. The top edge is the
@@ -358,10 +358,10 @@ Click the **Legend** button (or gear > **Indicator legend...**) for the
 Thumbnail edges and badges show what each image's SAVED data holds.
   Top edge / A   = annotations
   Right edge (hatched) / D = detections, cells and tiles
-  Bottom edge / T = TMA cores
-Solid edge or close hatching = from the last save. Dashed edge, widely
-spaced hatching or * = the image is open and has unsaved changes, so the
-counts come from the viewer.
+  Bottom edge (half circles) / T = TMA cores
+Solid edge, close hatching or filled half circles = from the last save.
+Dashed edge, widely spaced hatching, outlined half circles or * = the image
+is open and has unsaved changes, so the counts come from the viewer.
 No edges: no saved data (italic name), no objects, or not loaded yet.
 Hover a row to see the exact counts.
 Search tip: has=annotations, has=detections, has=tma, has_data=false.
@@ -371,8 +371,8 @@ Notes:
 
 - The indicators describe **saved** data: what was on disk the last time that image was saved.
   The current image is the exception: its edges follow the live objects in the viewer and turn
-  **dashed** (the hatched detections edge spreads its marks twice as far apart) as soon as
-  there are unsaved changes, then solid again when you save.
+  **dashed** (the hatched detections edge spreads its marks twice as far apart, the TMA half
+  circles become outlines) as soon as there are unsaved changes, then solid again when you save.
 - Three states look alike at a glance (no edges) and the row tooltip tells them apart:
   `No saved data` (also italic name), `Saved data: no objects`, and `Object summary not loaded
   yet`. Project+ never opens an entry's data file to find out, because that can take seconds
@@ -1007,8 +1007,8 @@ delete it by hand on the share, knowing it will not be recoverable. A mapped net
 
 **The indicators are stale, or a row has no edges although I annotated it.**
 Indicators read the summary QuPath writes when an image is saved, so they show the state at
-the last save. The current image is the exception and tracks the viewer, with dashed edges
-and widely spaced hatching while there are unsaved changes. Hover the row: `No saved data`,
+the last save. The current image is the exception and tracks the viewer, with dashed edges,
+widely spaced hatching and outlined half circles while there are unsaved changes. Hover the row: `No saved data`,
 `Saved data: no objects` and `Object summary not loaded yet` are three different things that
 all look like no edges. An entry saved by a QuPath version that did not write the summary
 shows no edges until its next save. Fix: save the image.

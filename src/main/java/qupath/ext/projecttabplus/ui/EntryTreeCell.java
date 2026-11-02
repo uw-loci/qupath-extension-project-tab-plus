@@ -369,8 +369,8 @@ final class EntryTreeCell extends TreeCell<Row> {
                     presence.unsaved());
         }
         if (presence.hasTmaCores()) {
-            gc.setStroke(ColorToolsFX.getCachedColor(PathPrefs.colorTMAProperty().get()));
-            gc.strokeLine(0, h - EDGE / 2, w, h - EDGE / 2);
+            Bumps.paint(gc, 0, 0, w, h, ColorToolsFX.getCachedColor(PathPrefs.colorTMAProperty().get()),
+                    presence.unsaved());
         }
         gc.setLineDashes((double[]) null);
     }

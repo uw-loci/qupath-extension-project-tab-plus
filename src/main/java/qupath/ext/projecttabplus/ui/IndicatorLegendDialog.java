@@ -42,7 +42,7 @@ final class IndicatorLegendDialog {
         box.getChildren().add(swatch(Strings.get("legend.annotations"),
                 ColorToolsFX.getCachedColor(PathPrefs.colorDefaultObjectsProperty().get())));
         box.getChildren().add(hatchedSwatch(Strings.get("legend.detections"), ThemeColors.detectionsPaint()));
-        box.getChildren().add(swatch(Strings.get("legend.tma"),
+        box.getChildren().add(bumpSwatch(Strings.get("legend.tma"),
                 ColorToolsFX.getCachedColor(PathPrefs.colorTMAProperty().get())));
         box.getChildren().add(wrapped(Strings.get("legend.solid")));
         box.getChildren().add(wrapped(Strings.get("legend.none")));
@@ -85,6 +85,20 @@ final class IndicatorLegendDialog {
         gc.setLineWidth(1);
         gc.strokeRect(0.5, 0.5, SWATCH - 1, SWATCH - 1);
         Label l = wrapped(text, TEXT_WIDTH - SWATCH - 8);
+        HBox.setHgrow(l, Priority.ALWAYS);
+        HBox h = new HBox(8, c, l);
+        h.setAlignment(Pos.CENTER_LEFT);
+        return h;
+    }
+
+    private static HBox bumpSwatch(String text, javafx.scene.paint.Color color) {
+        Canvas c = new Canvas(2 * SWATCH, SWATCH);
+        GraphicsContext gc = c.getGraphicsContext2D();
+        gc.setStroke(ThemeColors.borderPaint());
+        gc.setLineWidth(1);
+        gc.strokeRect(0.5, 0.5, 2 * SWATCH - 1, SWATCH - 1);
+        Bumps.paint(gc, 1, 1, 2 * SWATCH - 2, SWATCH - 2, color, false);
+        Label l = wrapped(text, TEXT_WIDTH - 2 * SWATCH - 8);
         HBox.setHgrow(l, Priority.ALWAYS);
         HBox h = new HBox(8, c, l);
         h.setAlignment(Pos.CENTER_LEFT);
