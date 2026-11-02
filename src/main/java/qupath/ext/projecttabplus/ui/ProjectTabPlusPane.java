@@ -22,11 +22,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
@@ -90,6 +93,8 @@ import qupath.ext.projecttabplus.model.ImageRow;
 import qupath.ext.projecttabplus.model.ProfileStore;
 import qupath.ext.projecttabplus.model.Row;
 import qupath.ext.projecttabplus.model.TreeBuilder;
+import qupath.ext.projecttabplus.model.names.NameRuleSet;
+import qupath.ext.projecttabplus.model.names.NameRulesJson;
 import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
 import qupath.fx.dialogs.Dialogs;
 import qupath.lib.common.ColorTools;
@@ -123,6 +128,9 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     /** Project metadata key holding the last profile used with the project. */
     public static final String PROJECT_PROFILE_KEY = "_PROJECT_TAB_PLUS_PROFILE";
+
+    /** Project metadata key holding the display-name rules and the Show truncated names flag, as JSON. */
+    public static final String NAME_RULES_KEY = "_PROJECT_TAB_PLUS_NAME_RULES";
 
     /** The built-in tab's project metadata key for its sort choice; read only. */
     static final String SORT_KEY = "_SORT_KEY";
@@ -222,6 +230,18 @@ public final class ProjectTabPlusPane extends BorderPane {
     private boolean updatingProfileCombo;
     private DisplaySettingsDialog settingsDialog;
     private final BulkCommands bulkCommands;
+
+    // Display-name rules: the applied set and its flag. The toggle and the set stay in step through
+    // applyNameRules; syncingToggle stops the toggle listener writing back while they are set together.
+    private final ObjectProperty<NameRuleSet> nameRules = new SimpleObjectProperty<>(NameRuleSet.EMPTY);
+    private final BooleanProperty showTruncatedNames = new SimpleBooleanProperty(false);
+    private boolean syncingToggle;
+    /** Whether the last build showed short names. */
+    private boolean builtShortNames;
+    private int builtSharedNames;
+    private int builtSharedRows;
+    /** Set by Apply in the rules window: report shared short names until a build has none. */
+    private boolean collisionNotice;
     private final EntryActions entryActions;
 
     /**
@@ -253,6 +273,16 @@ public final class ProjectTabPlusPane extends BorderPane {
         PathPrefs.colorTMAProperty().addListener((obs, o, n) -> tree.refresh());
         ProjectTabPlusPreferences.useCustomHighlightColorProperty().addListener((obs, o, n) -> tree.refresh());
         ProjectTabPlusPreferences.currentImageHighlightColorProperty().addListener((obs, o, n) -> tree.refresh());
+        showTruncatedNames.addListener((obs, o, n) -> {
+            if (!syncingToggle) {
+                onToggleShortNames(n);
+            }
+        });
+        PathPrefs.maskImageNamesProperty().addListener((obs, o, n) -> {
+            if (n && nameRules.get().active()) {
+                setTransientStatus(Strings.get("status.shortNamesMasked"), false);
+            }
+        });
         liveDebounce.setOnFinished(e -> recomputeLivePresence());
         changedPoll.setOnFinished(e -> pollChangedFlag());
 
@@ -839,7 +869,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         updatingProfileCombo = false;
         if (persist) {
             ProjectTabPlusPreferences.lastProfileProperty().set(profile.getName());
-            storeProjectProfile(profile.getName());
+            storeProjectMetadata(PROJECT_PROFILE_KEY, profile.getName(), null);
         }
         if (settingsDialog != null) {
             settingsDialog.reloadFromLive();
@@ -847,21 +877,206 @@ public final class ProjectTabPlusPane extends BorderPane {
         coordinator.request(Reason.PROFILE);
     }
 
-    private void storeProjectProfile(String name) {
+    /**
+     * Put a project metadata value, or remove it, then save the project on the bulk thread and
+     * confirm the write by re-reading {@code data/metadata.json}: QuPath only logs a failed write.
+     *
+     * @param key the metadata key
+     * @param value the value, or null to remove the key
+     * @param onSaved receives on the FX thread whether the value is on disk; may be null
+     */
+    void storeProjectMetadata(String key, String value, Consumer<Boolean> onSaved) {
         Project<BufferedImage> project = qupath.getProject();
         if (project == null) {
+            if (onSaved != null) {
+                onSaved.accept(false);
+            }
             return;
         }
-        String old = project.getMetadata().get(PROJECT_PROFILE_KEY);
-        if (Objects.equals(old, name)) {
+        String old = project.getMetadata().get(key);
+        if (Objects.equals(old, value)) {
+            if (onSaved != null) {
+                onSaved.accept(true);
+            }
             return;
         }
-        project.getMetadata().put(PROJECT_PROFILE_KEY, name);
+        if (value == null) {
+            project.getMetadata().remove(key);
+        } else {
+            project.getMetadata().put(key, value);
+        }
         bulkExecutor.submit(() -> {
+            boolean ok;
             try {
                 project.syncChanges();
-            } catch (IOException e) {
-                logger.warn("Could not save the project's profile name: {}", e.getMessage());
+                ok = metadataOnDisk(project, key, value);
+            } catch (IOException | RuntimeException e) {
+                logger.warn("Could not save project metadata {}: {}", key, e.getMessage());
+                ok = false;
+            }
+            if (!ok) {
+                logger.warn("Project metadata {} is not in data/metadata.json after saving the project", key);
+            }
+            boolean saved = ok;
+            if (onSaved != null) {
+                Platform.runLater(() -> onSaved.accept(saved));
+            }
+        });
+    }
+
+    /** Re-read the project's metadata file. Disk access: call off the FX thread. */
+    private static boolean metadataOnDisk(Project<BufferedImage> project, String key, String value) throws IOException {
+        Path qpproj = project.getPath();
+        if (qpproj == null || qpproj.getParent() == null) {
+            return true;
+        }
+        Path file = qpproj.getParent().resolve("data").resolve("metadata.json");
+        if (!Files.exists(file)) {
+            return value == null;
+        }
+        String json = Files.readString(file, java.nio.charset.StandardCharsets.UTF_8);
+        com.google.gson.JsonElement el = com.google.gson.JsonParser.parseString(json);
+        if (!el.isJsonObject()) {
+            return false;
+        }
+        com.google.gson.JsonElement v = el.getAsJsonObject().get(key);
+        String stored = v == null || v.isJsonNull() ? null : v.getAsString();
+        return Objects.equals(stored, value);
+    }
+
+    /**
+     * Whether the project's metadata file can be written. Disk access: call off the FX thread.
+     *
+     * @param project the project
+     * @return false when the data folder or metadata.json is read-only
+     */
+    static boolean projectWritable(Project<BufferedImage> project) {
+        Path qpproj = project == null ? null : project.getPath();
+        if (qpproj == null || qpproj.getParent() == null) {
+            return true;
+        }
+        Path data = qpproj.getParent().resolve("data");
+        Path file = data.resolve("metadata.json");
+        try {
+            if (Files.exists(file)) {
+                return Files.isWritable(file) && Files.isWritable(data);
+            }
+            return Files.isWritable(Files.exists(data) ? data : qpproj.getParent());
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    // ------------------------------------------------------------------ display-name rules
+
+    /**
+     * Apply a rule set to the tab and save it with the project. An empty list removes the key.
+     *
+     * @param set the rules and their flag
+     * @param onSaved receives on the FX thread whether the rules reached the project file; may be null
+     */
+    void applyNameRules(NameRuleSet set, Consumer<Boolean> onSaved) {
+        NameRuleSet s = set.isEmpty() ? NameRuleSet.EMPTY : set;
+        nameRules.set(s);
+        syncToggle();
+        storeProjectMetadata(NAME_RULES_KEY, s.isEmpty() ? null : NameRulesJson.write(s), ok -> {
+            if (!ok && qupath.getProject() != null) {
+                setStickyStatus(Strings.get("names.status.saveFailed"));
+            }
+            if (onSaved != null) {
+                onSaved.accept(ok);
+            }
+        });
+        coordinator.request(Reason.NAME_RULES);
+    }
+
+    /** Set by Apply in the rules window: report shared short names after the next build. */
+    void requestCollisionNotice() {
+        collisionNotice = true;
+    }
+
+    private void syncToggle() {
+        syncingToggle = true;
+        try {
+            showTruncatedNames.set(nameRules.get().enabled());
+        } finally {
+            syncingToggle = false;
+        }
+    }
+
+    private void onToggleShortNames(boolean on) {
+        NameRuleSet current = nameRules.get();
+        if (current.isEmpty() || on == current.enabled()) {
+            return;
+        }
+        applyNameRules(current.withEnabled(on), null);
+        if (on) {
+            List<String> names = allRows.stream().map(r -> r.info().name()).toList();
+            NameRuleSet set = nameRules.get();
+            previewNames(() -> set.applyAll(names).changed(), changed -> setTransientStatus(
+                    Strings.format("status.shortNamesOn", changed, names.size()), false));
+        } else {
+            setTransientStatus(Strings.get("status.shortNamesOff"), false);
+        }
+    }
+
+    private void loadNameRules(Project<BufferedImage> project) {
+        NameRuleSet set = NameRuleSet.EMPTY;
+        if (project != null) {
+            NameRulesJson.Parsed parsed = NameRulesJson.parse(project.getMetadata().get(NAME_RULES_KEY));
+            set = parsed.rules();
+        }
+        nameRules.set(set);
+        syncToggle();
+    }
+
+    /** @return the rules applied to the tab */
+    ObjectProperty<NameRuleSet> nameRulesProperty() {
+        return nameRules;
+    }
+
+    /** @return the Show truncated names flag, shared by both menus and the rules window */
+    public BooleanProperty showTruncatedNamesProperty() {
+        return showTruncatedNames;
+    }
+
+    /** @return true while rows show short names: switched on, a rule on, names not masked */
+    boolean shortNamesActive() {
+        return nameRules.get().active() && !PathPrefs.maskImageNamesProperty().get();
+    }
+
+    /**
+     * @return entry ID to short name, for the images whose short name differs from the full
+     *         name in the last build; empty while short names are off
+     */
+    Map<String, String> shortNamesById() {
+        Map<String, String> out = new HashMap<>();
+        if (!builtShortNames) {
+            return out;
+        }
+        for (ImageRow row : allRows) {
+            if (!row.info().displayName().equals(row.info().name())) {
+                out.put(row.id(), row.info().displayName());
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Run a computation on the tree thread and hand the result to the FX thread. The caller
+     * keeps its own generation counter when only the latest result matters.
+     *
+     * @param work the computation; must not touch the scene graph
+     * @param onDone receives the result on the FX thread
+     * @param <T> the result type
+     */
+    <T> void previewNames(Supplier<T> work, Consumer<T> onDone) {
+        treeExecutor.submit(() -> {
+            try {
+                T result = work.get();
+                Platform.runLater(() -> onDone.accept(result));
+            } catch (RuntimeException e) {
+                logger.error("Previewing name rules failed: {}", e.getMessage(), e);
             }
         });
     }
@@ -956,6 +1171,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         if (settingsDialog != null) {
             settingsDialog.close();
         }
+        collisionNotice = false;
+        loadNameRules(project);
         if (project != null) {
             String stored = project.getMetadata().get(PROJECT_PROFILE_KEY);
             String name = stored != null ? stored : ProjectTabPlusPreferences.lastProfileProperty().get();
@@ -1042,6 +1259,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         List<ProjectImageEntry<BufferedImage>> entries = project.getImageList();
         coordinator.rememberList(entries);
         boolean masked = PathPrefs.maskImageNamesProperty().get();
+        // Masked names are random, so the rules never touch them.
+        NameRuleSet rules = masked || !nameRules.get().active() ? null : nameRules.get();
         GroupingSpec spec = effectiveGroupingSpec(project, masked);
         EntryFilter filter = currentFilter();
         boolean needsType = spec.levels().stream().anyMatch(k -> k.builtin() == GroupingKey.Builtin.IMAGE_TYPE)
@@ -1066,8 +1285,13 @@ public final class ProjectTabPlusPane extends BorderPane {
                     }
                     ObjectPresence p = sweepFirst ? summaryReader.get(entry) : summaryReader.peek(entry.getID());
                     String type = p == null ? null : p.imageType();
-                    rows.add(new ImageRow(EntryInfo.from(entry, type, this::isUriMissing), entry));
+                    EntryInfo info = EntryInfo.from(entry, type, this::isUriMissing);
+                    if (rules != null) {
+                        info = info.withDisplayName(rules.apply(info.name()).display());
+                    }
+                    rows.add(new ImageRow(info, entry));
                 }
+                int[] nameStats = sharedShortNames(rows);
                 if (masked) {
                     Collections.shuffle(rows);
                 }
@@ -1095,7 +1319,7 @@ public final class ProjectTabPlusPane extends BorderPane {
                     if (gen != generation.get()) {
                         return;
                     }
-                    applyBuild(rows, built, keys, values, selectedId, filter);
+                    applyBuild(rows, built, keys, values, selectedId, filter, rules != null, nameStats);
                 });
                 if (!sweepFirst) {
                     summaryExecutor.submit(() -> {
@@ -1150,9 +1374,33 @@ public final class ProjectTabPlusPane extends BorderPane {
         Platform.runLater(this::hideBusy);
     }
 
+    /** @return {shared short names, images showing one} */
+    private static int[] sharedShortNames(List<ImageRow> rows) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (ImageRow r : rows) {
+            counts.merge(r.info().displayName(), 1, Integer::sum);
+        }
+        int names = 0;
+        int images = 0;
+        for (int n : counts.values()) {
+            if (n > 1) {
+                names++;
+                images += n;
+            }
+        }
+        return new int[] {names, images};
+    }
+
     private void applyBuild(List<ImageRow> rows, TreeBuilder.BuiltTree built, Set<String> keys,
-                            Map<String, Set<String>> values, String selectedId, EntryFilter filter) {
+                            Map<String, Set<String>> values, String selectedId, EntryFilter filter,
+                            boolean shortNames, int[] nameStats) {
         hideBusy();
+        builtShortNames = shortNames;
+        builtSharedNames = shortNames ? nameStats[0] : 0;
+        builtSharedRows = shortNames ? nameStats[1] : 0;
+        if (builtSharedNames == 0) {
+            collisionNotice = false;
+        }
         allRows = rows;
         lastBuilt = built;
         metadataKeys = keys;
@@ -1166,7 +1414,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         if (rows.isEmpty()) {
             showPlaceholder(Strings.get("placeholder.noImages"), false);
         } else if (built.shown() == 0) {
-            showPlaceholder(Strings.get("placeholder.noMatches"), false);
+            showPlaceholder(Strings.get(shortNames && !searchField.getText().isBlank()
+                    ? "placeholder.noMatches.shortNames" : "placeholder.noMatches"), false);
         } else {
             showCenter(tree);
         }
@@ -1393,7 +1642,7 @@ public final class ProjectTabPlusPane extends BorderPane {
     private String nameOf(String id) {
         TreeItem<Row> item = itemById.get(id);
         if (item != null && item.getValue() instanceof ImageRow row) {
-            return row.info().name();
+            return row.info().displayName();
         }
         Project<BufferedImage> project = qupath.getProject();
         if (project != null) {
@@ -1658,8 +1907,17 @@ public final class ProjectTabPlusPane extends BorderPane {
             // A transient message is showing; it reverts to the totals by itself.
             return;
         }
-        status.setText(idleStatusText());
-        ThemeColors.textFill(status, "-fx-text-base-color");
+        if (collisionNotice && builtSharedNames > 0) {
+            status.setText(Strings.plural("status.nameCollisions.one", "status.nameCollisions.many",
+                    builtSharedNames, builtSharedRows));
+            ThemeColors.textFill(status, ThemeColors.WARNING);
+        } else {
+            status.setText(idleStatusText());
+            ThemeColors.textFill(status, "-fx-text-base-color");
+        }
+        status.getTooltip().setText(builtShortNames
+                ? Strings.get("status.tooltip") + " " + Strings.get("status.tooltip.shortNames")
+                : Strings.get("status.tooltip"));
         int n = checkedIds.size();
         bulkCount.setText(Strings.plural("bulk.count.one", "bulk.count.many", n, allRows.size()));
     }
@@ -1671,10 +1929,11 @@ public final class ProjectTabPlusPane extends BorderPane {
         int total = lastBuilt.total();
         int shown = lastBuilt.shown();
         int checked = checkedIds.size();
+        String suffix = builtShortNames ? Strings.get("status.shortNames") : "";
         if (shown != total) {
-            return checked > 0
+            return (checked > 0
                     ? Strings.format("status.filteredChecked", shown, total, checked)
-                    : Strings.format("status.filtered", shown, total);
+                    : Strings.format("status.filtered", shown, total)) + suffix;
         }
         StringBuilder sb = new StringBuilder(Strings.plural("status.idle.one", "status.idle.many", total));
         if (currentEntryId != null) {
@@ -1683,7 +1942,7 @@ public final class ProjectTabPlusPane extends BorderPane {
         if (checked > 0) {
             sb.append(Strings.format("status.checked", checked));
         }
-        return sb.toString();
+        return sb.append(suffix).toString();
     }
 
     /**

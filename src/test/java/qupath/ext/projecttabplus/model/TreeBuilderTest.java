@@ -123,4 +123,38 @@ class TreeBuilderTest {
         assertEquals(EntryInfo.MULTIPLE_URIS, EntryInfo.fileNameFromUris(List.of(
                 new java.net.URI("file:///a.tif"), new java.net.URI("file:///b.tif"))));
     }
+
+    @Test
+    void entryInfoShowsTheFullNameUntilGivenAShortName() {
+        EntryInfo info = new FakeEntry("1", "MetroHealth_FNA_PDAC_1.svs").info();
+        assertEquals("MetroHealth_FNA_PDAC_1.svs", info.displayName());
+        EntryInfo shortInfo = info.withDisplayName("1");
+        assertEquals("1", shortInfo.displayName());
+        assertEquals("MetroHealth_FNA_PDAC_1.svs", shortInfo.name());
+        assertEquals(info.metadata(), shortInfo.metadata());
+    }
+
+    @Test
+    void imageNameLevelGroupsByTheShortNameAndMergesSharedOnes() {
+        List<ImageRow> rows = List.of(
+                new FakeEntry("1", "S_PDAC_2_20x_11304_90.0_004.ome.tif").row("2_90.0_004"),
+                new FakeEntry("2", "S_PDAC_2_20x_29232_90.0_004.ome.tif").row("2_90.0_004"),
+                new FakeEntry("3", "S_PDAC_1.svs").row("1"));
+        TreeBuilder.BuiltTree t = TreeBuilder.build(rows,
+                new GroupingSpec(List.of(GroupingKey.builtin(Builtin.IMAGE_NAME))), null);
+        List<Row> top = t.root().children();
+        assertEquals(2, top.size());
+        assertEquals("1", ((GroupRow) top.get(0)).value());
+        assertEquals("2_90.0_004", ((GroupRow) top.get(1)).value());
+        assertEquals(2, ((GroupRow) top.get(1)).imageCount());
+        assertEquals("S_PDAC_1.svs", ((ImageRow) ((GroupRow) top.get(0)).children().get(0)).info().name());
+    }
+
+    @Test
+    void metadataLevelsIgnoreShortNames() {
+        ImageRow row = new FakeEntry("1", "S_PDAC_1.svs").meta("base_image", "S_PDAC_1").row("1");
+        assertEquals("S_PDAC_1", GroupingKey.metadata("base_image").valueOf(row.info()));
+        assertEquals("1", GroupingKey.builtin(Builtin.IMAGE_NAME).valueOf(row.info()));
+        assertEquals("(Unassigned)", GroupingKey.builtin(Builtin.IMAGE_TYPE).valueOf(row.info()));
+    }
 }

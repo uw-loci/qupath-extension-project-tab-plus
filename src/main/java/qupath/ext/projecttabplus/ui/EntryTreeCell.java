@@ -196,6 +196,9 @@ final class EntryTreeCell extends TreeCell<Row> {
         setGraphic(groupBox);
         tooltip.setGraphic(null);
         String groupTip = group.key() == null ? group.value() : group.key().displayName() + ": " + group.value();
+        if (group.key() != null && group.key().builtin() == GroupingKey.Builtin.IMAGE_NAME && pane.shortNamesActive()) {
+            groupTip += "\n" + Strings.get("row.tooltip.shortGroup");
+        }
         tooltip.setText(currentInside ? groupTip + "\n" + Strings.get("row.tooltip.openInside") : groupTip);
         setTooltip(pane.isContextMenuShowing() ? null : tooltip);
     }
@@ -244,7 +247,7 @@ final class EntryTreeCell extends TreeCell<Row> {
         paint(thumb, presence, profile.getIndicators() == IndicatorStyle.EDGES);
         imageBox.getChildren().add(thumbPane);
 
-        name.setText(row.info().name());
+        name.setText(row.info().displayName());
         chip.setVisible(current);
         chip.setManaged(current);
 
@@ -377,6 +380,9 @@ final class EntryTreeCell extends TreeCell<Row> {
 
     static String tooltipText(ImageRow row, ObjectPresence presence, boolean current) {
         StringBuilder sb = new StringBuilder();
+        if (!row.info().displayName().equals(row.info().name())) {
+            sb.append(Strings.format("row.tooltip.fullName", row.info().name())).append("\n\n");
+        }
         if (current) {
             sb.append(presence.unsaved() ? Strings.get("row.tooltip.openUnsaved") : Strings.get("row.tooltip.open"));
             if (presence.isKnown()) {

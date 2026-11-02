@@ -146,7 +146,8 @@ public final class GroupingKey {
 
     /**
      * @param info an entry snapshot
-     * @return the entry's value for this level, or {@link #UNASSIGNED}
+     * @return the entry's value for this level, or {@link #UNASSIGNED}; the image name is the
+     *         shown (possibly short) name
      */
     public String valueOf(EntryInfo info) {
         if (builtin == null) {
@@ -154,7 +155,7 @@ public final class GroupingKey {
             return v == null || v.isBlank() ? UNASSIGNED : v;
         }
         return switch (builtin) {
-            case IMAGE_NAME -> info.name();
+            case IMAGE_NAME -> info.displayName();
             case FILE_NAME -> info.fileName();
             case ENTRY_ID -> info.id();
             case IMAGE_TYPE -> info.imageType() == null ? UNASSIGNED : info.imageType();

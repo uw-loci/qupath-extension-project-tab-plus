@@ -14,6 +14,7 @@ import qupath.lib.projects.ProjectImageEntry;
  *
  * @param id the entry ID
  * @param name the image name (already masked when QuPath masks names)
+ * @param displayName what the row shows: the short name while name rules are on, else {@code name}
  * @param metadata a copy of the entry metadata
  * @param fileName the file name derived from the entry URIs, with QuPath's own labels for the
  *                 remote, multiple and unreadable cases
@@ -21,8 +22,8 @@ import qupath.lib.projects.ProjectImageEntry;
  * @param hasImageData whether the entry has saved data
  * @param fileMissing true when a local file URI points at nothing
  */
-public record EntryInfo(String id, String name, Map<String, String> metadata, String fileName,
-                        String imageType, boolean hasImageData, boolean fileMissing) {
+public record EntryInfo(String id, String name, String displayName, Map<String, String> metadata,
+                        String fileName, String imageType, boolean hasImageData, boolean fileMissing) {
 
     /** Label the built-in tab uses for an entry whose URI cannot be read. */
     public static final String UNDEFINED = "Undefined";
@@ -31,7 +32,16 @@ public record EntryInfo(String id, String name, Map<String, String> metadata, St
     public static final String MULTIPLE_URIS = "Multiple URIs";
 
     public EntryInfo {
+        displayName = displayName == null ? name : displayName;
         metadata = Collections.unmodifiableMap(new LinkedHashMap<>(metadata));
+    }
+
+    /**
+     * @param shortName the name to show instead of the full name
+     * @return a copy showing that name
+     */
+    public EntryInfo withDisplayName(String shortName) {
+        return new EntryInfo(id, name, shortName, metadata, fileName, imageType, hasImageData, fileMissing);
     }
 
     /**
@@ -58,7 +68,8 @@ public record EntryInfo(String id, String name, Map<String, String> metadata, St
         } catch (IOException e) {
             fileName = UNDEFINED;
         }
-        return new EntryInfo(entry.getID(), entry.getImageName(), entry.getMetadata(), fileName,
+        String name = entry.getImageName();
+        return new EntryInfo(entry.getID(), name, name, entry.getMetadata(), fileName,
                 imageType, entry.hasImageData(), missing);
     }
 

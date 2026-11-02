@@ -60,6 +60,11 @@ public final class FakeEntry implements ProjectImageEntry<BufferedImage> {
         return new ImageRow(info(), this);
     }
 
+    /** A row showing a short name, as the pane builds it while name rules are on. */
+    public ImageRow row(String shortName) {
+        return new ImageRow(info().withDisplayName(shortName), this);
+    }
+
     @Override
     public String getID() {
         return id;

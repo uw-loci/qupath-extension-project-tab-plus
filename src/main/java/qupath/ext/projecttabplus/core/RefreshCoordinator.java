@@ -18,7 +18,7 @@ import qupath.lib.projects.Project;
 import qupath.lib.projects.ProjectImageEntry;
 
 /**
- * Decides when the tree is rebuilt. PROJECT, MANUAL, MASK_NAMES and PROFILE rebuild at once;
+ * Decides when the tree is rebuilt. PROJECT, MANUAL, MASK_NAMES, PROFILE and NAME_RULES rebuild at once;
  * FILTER is debounced 150 ms and ROOT_HOOK (the built-in tree replacing its root, used only as a
  * trigger) 250 ms; TAB_SELECTED rebuilds only when the project's image list changed by identity
  * or size since the last build.
@@ -29,7 +29,7 @@ public final class RefreshCoordinator {
 
     /** Why a rebuild was requested. */
     public enum Reason {
-        PROJECT, FILTER, ROOT_HOOK, MANUAL, TAB_SELECTED, MASK_NAMES, PROFILE
+        PROJECT, FILTER, ROOT_HOOK, MANUAL, TAB_SELECTED, MASK_NAMES, PROFILE, NAME_RULES
     }
 
     private final QuPathGUI qupath;
