@@ -147,6 +147,8 @@ final class NameRulesDialog implements NameRuleEditors.Host {
     private static final String HELP_URL = "https://github.com/uw-loci/qupath-extension-project-tab-plus/blob/main/"
             + "docs/user-guide.md#shorten-how-names-are-shown";
     private static final Duration DEBOUNCE = Duration.millis(250);
+    private static final double MIN_WIDTH = 640;
+    private static final double MIN_HEIGHT = 520;
 
     private final ProjectTabPlusPane pane;
     private final Stage stage = new Stage();
@@ -197,8 +199,14 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         stage.initOwner(pane.qupath().getStage());
         stage.initModality(Modality.NONE);
         stage.setTitle(Strings.get(TITLE_KEY));
-        stage.setMinWidth(640);
-        stage.setMinHeight(520);
+        stage.setMinWidth(MIN_WIDTH);
+        stage.setMinHeight(MIN_HEIGHT);
+        // The minimum is for the content: add whatever the window frame takes on this platform.
+        stage.setOnShown(e -> {
+            Scene s = stage.getScene();
+            stage.setMinWidth(MIN_WIDTH + Math.max(0, stage.getWidth() - s.getWidth()));
+            stage.setMinHeight(MIN_HEIGHT + Math.max(0, stage.getHeight() - s.getHeight()));
+        });
 
         VBox ruleColumn = buildRuleColumn();
         editorScroll.setFitToWidth(true);
@@ -446,6 +454,8 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             HBox.setHgrow(text, Priority.ALWAYS);
             count.setMinWidth(Region.USE_PREF_SIZE);
             check.setTooltip(Tooltips.of(Strings.get("names.ruleCheck.tooltip")));
+            // Space on the list turns the selected rule on or off, so Tab skips these.
+            check.setFocusTraversable(false);
             check.setOnAction(e -> {
                 int i = getIndex();
                 if (i >= 0 && i < rules.size()) {

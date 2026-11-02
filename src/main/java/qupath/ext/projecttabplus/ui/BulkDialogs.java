@@ -287,19 +287,23 @@ final class BulkDialogs {
             case EXPORT -> "d7.header.export";
         };
         StringBuilder sb = new StringBuilder();
+        boolean bothNames = false;
         for (BulkJobs.Failure f : outcome.failures()) {
             String shortName = shortNames.get(f.entryId());
-            String name = shortName == null || shortName.equals(f.name())
-                    ? f.name() : Strings.format("d7.bothNames", shortName, f.name());
+            boolean both = shortName != null && !shortName.equals(f.name());
+            bothNames |= both;
+            String name = both ? Strings.format("d7.bothNames", shortName, f.name()) : f.name();
             sb.append(Strings.format("d7.failedLine", name, f.reason())).append('\n');
         }
         TextArea failed = new TextArea(sb.toString().trim());
         failed.setEditable(false);
         failed.setWrapText(true);
-        failed.setPrefRowCount(Math.min(LIST_ROWS, Math.max(3, outcome.failures().size())));
+        // A line naming both the short and the full name usually wraps onto a second row.
+        int perLine = bothNames ? 2 : 1;
+        failed.setPrefRowCount(Math.min(LIST_ROWS, Math.max(3, perLine * outcome.failures().size())));
         failed.setTooltip(Tooltips.of(Strings.get("d7.failedList.tooltip")));
         VBox box = new VBox(6, new Label(Strings.get("d7.failedLabel")), failed, wrapped(Strings.get("d7.logHint")));
-        box.setPrefWidth(460);
+        box.setPrefWidth(bothNames ? 560 : 460);
         Dialogs.builder()
                 .title(Strings.get(titleKey))
                 .headerText(Strings.format(headerKey, outcome.done(), outcome.failures().size()))

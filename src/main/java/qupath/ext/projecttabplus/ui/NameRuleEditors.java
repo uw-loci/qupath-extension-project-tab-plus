@@ -729,6 +729,8 @@ final class NameRuleEditors {
                     cb.setTooltip(Tooltips.of(Strings.get("names.suggestion.tooltip")));
                     cb.setMaxWidth(Double.MAX_VALUE);
                     cb.setMinWidth(0);
+                    // A leftover's example can be long; wrap rather than cut it.
+                    cb.setWrapText(true);
                     HBox.setHgrow(cb, Priority.ALWAYS);
                     cb.selectedProperty().addListener((obs, o, n) -> {
                         updateAdd();
@@ -739,12 +741,13 @@ final class NameRuleEditors {
                             : Strings.format("names.card.reach", s.reach(), s.total()));
                     reach.setMinWidth(Region.USE_PREF_SIZE);
                     HBox row = new HBox(8, cb, reach);
-                    row.setAlignment(Pos.CENTER_LEFT);
+                    row.setAlignment(Pos.BASELINE_LEFT);
                     ticks.add(cb);
                     rows.getChildren().add(row);
                 }
                 add.setTooltip(Tooltips.of(Strings.get("names.addSuggestions.tooltip")));
                 add.setMnemonicParsing(false);
+                add.setMinWidth(Region.USE_PREF_SIZE);
                 add.setOnAction(e -> onAdd.accept(ticked()));
                 Label hint = wrapped(Strings.get("names.card.hint"));
                 HBox addRow = new HBox(10, add, hint);
