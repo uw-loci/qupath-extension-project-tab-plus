@@ -180,7 +180,7 @@ public final class DisplayNameRulesScenario {
         HarnessSupport.check(kw != null, "the window opens on the kept rule");
         if (kw != null) {
             HarnessSupport.check(HarnessSupport.waitUntil(() -> labelTexts(kw).stream()
-                    .anyMatch(t -> t.startsWith("1. Rule from a newer version of Project+")), 5000),
+                    .anyMatch(t -> t.startsWith("1. From a newer Project+; kept as is")), 5000),
                     "the kept rule is listed as locked: " + labelTexts(kw));
             HarnessSupport.check(labelTexts(kw).contains("Rule kept as is"), "its editor explains it");
             // Esc from the rule list, where focus lands, closes an unchanged window.
