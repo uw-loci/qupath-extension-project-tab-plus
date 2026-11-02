@@ -465,6 +465,9 @@ final class NameRulesDialog implements NameRuleEditors.Host {
 
     // ------------------------------------------------------------------ rule list
 
+    /** Gap between the checkbox, the sentence and the count in a rule row. */
+    private static final double CELL_GAP = 6;
+
     private final class RuleCell extends ListCell<NameRule> {
 
         private final CheckBox check = new CheckBox();
@@ -475,8 +478,12 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         RuleCell() {
             setMnemonicParsing(false);
             text.setMnemonicParsing(false);
+            // A long sentence wraps onto more lines and the row grows; the count stays on the top line.
+            text.setWrapText(true);
             text.setMinWidth(0);
+            text.setMinHeight(Region.USE_PREF_SIZE);
             text.setMaxWidth(Double.MAX_VALUE);
+            text.setAlignment(Pos.TOP_LEFT);
             HBox.setHgrow(text, Priority.ALWAYS);
             count.setMinWidth(Region.USE_PREF_SIZE);
             check.setTooltip(Tooltips.of(Strings.get("names.ruleCheck.tooltip")));
@@ -488,10 +495,28 @@ final class NameRulesDialog implements NameRuleEditors.Host {
                     replaceRule(i, rules.get(i).withOn(check.isSelected()));
                 }
             });
-            box = new HBox(6, check, text, count);
-            box.setAlignment(Pos.CENTER_LEFT);
+            box = new HBox(CELL_GAP, check, text, count);
+            box.setAlignment(Pos.TOP_LEFT);
             box.setMinWidth(0);
             setPrefWidth(1);
+        }
+
+        /**
+         * Height of the row at the width the list gives it, with the sentence wrapped to the
+         * width the row's HBox leaves it, so the row is never too short or too tall.
+         */
+        @Override
+        protected double computePrefHeight(double width) {
+            if (width < 0 || getGraphic() == null) {
+                return super.computePrefHeight(width);
+            }
+            Insets in = getInsets();
+            double inner = width - snapSpaceX(in.getLeft()) - snapSpaceX(in.getRight());
+            double textWidth = inner - snapSizeX(check.prefWidth(-1)) - snapSizeX(count.prefWidth(-1))
+                    - 2 * snapSpaceX(CELL_GAP);
+            double h = Math.max(text.prefHeight(Math.max(1, textWidth)),
+                    Math.max(check.prefHeight(-1), count.prefHeight(-1)));
+            return snapSizeY(h) + snapSpaceY(in.getTop()) + snapSpaceY(in.getBottom());
         }
 
         @Override
