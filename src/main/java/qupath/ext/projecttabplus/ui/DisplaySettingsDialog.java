@@ -74,6 +74,7 @@ final class DisplaySettingsDialog {
         save.disableProperty().bind(pane.profileModifiedProperty().not());
         save.setOnAction(e -> pane.saveLiveToProfile());
         Button close = new Button(Strings.get("settings.close"));
+        close.setTooltip(Tooltips.of(Strings.get("settings.close.tooltip")));
         close.setCancelButton(true);
         close.setOnAction(e -> stage.close());
         HBox buttons = new HBox(8, save, close);

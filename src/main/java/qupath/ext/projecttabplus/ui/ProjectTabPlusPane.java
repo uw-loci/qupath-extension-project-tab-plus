@@ -30,6 +30,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
+import javafx.event.Event;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -53,6 +55,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -488,10 +491,45 @@ public final class ProjectTabPlusPane extends BorderPane {
             } else if (e.getCode() == KeyCode.SPACE && checkboxMode.get() && item != null) {
                 toggleItemChecked(item);
                 e.consume();
+            } else if (e.getCode() == KeyCode.CONTEXT_MENU || (e.getCode() == KeyCode.F10 && e.isShiftDown())) {
+                // JavaFX makes a keyboard ContextMenuEvent only from a native menu event, which
+                // not every platform sends; ask for the menu the same way here.
+                Event.fireEvent(tree, new ContextMenuEvent(ContextMenuEvent.CONTEXT_MENU_REQUESTED,
+                        0, 0, 0, 0, true, null));
+                e.consume();
+            }
+        });
+        tree.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, e -> {
+            if (e.isKeyboardTrigger()) {
+                // A keyboard request (the key handler above, or the native one on Windows): show
+                // the menu at the selected row, not at the pointer, and never a second one.
+                if (!contextMenuShowing) {
+                    showContextMenuAtSelection();
+                }
+                e.consume();
             }
         });
         showCenter(tree);
         checkedIds.addListener((javafx.collections.SetChangeListener<String>) c -> updateStatus());
+    }
+
+    /** Show the row context menu under the selected row, or at the tree's top-left corner. */
+    private void showContextMenuAtSelection() {
+        TreeItem<Row> item = tree.getSelectionModel().getSelectedItem();
+        Node anchor = tree;
+        if (item != null) {
+            for (Node n : tree.lookupAll(".tree-cell")) {
+                if (n instanceof EntryTreeCell cell && cell.getTreeItem() == item && cell.isVisible()) {
+                    anchor = cell;
+                    break;
+                }
+            }
+        }
+        Bounds b = anchor.localToScreen(anchor.getBoundsInLocal());
+        if (b == null) {
+            return;
+        }
+        contextMenu.show(anchor, b.getMinX() + Math.min(40, b.getWidth() / 2), b.getMaxY());
     }
 
     private void buildBottom() {
@@ -591,8 +629,10 @@ public final class ProjectTabPlusPane extends BorderPane {
         placeholderText.setWrapText(true);
         placeholderText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         Button create = new Button(Strings.get("menu.createProject"));
+        create.setTooltip(Tooltips.of(Strings.get("placeholder.createProject.tooltip")));
         create.setOnAction(e -> qupath.getCommonActions().PROJECT_NEW.handle(new javafx.event.ActionEvent(create, null)));
         Button open = new Button(Strings.get("menu.openProject"));
+        open.setTooltip(Tooltips.of(Strings.get("placeholder.openProject.tooltip")));
         open.setOnAction(e -> qupath.getCommonActions().PROJECT_OPEN.handle(new javafx.event.ActionEvent(open, null)));
         HBox buttons = new HBox(8, create, open);
         buttons.setAlignment(Pos.CENTER);
@@ -1788,6 +1828,24 @@ public final class ProjectTabPlusPane extends BorderPane {
     /** @return the tree, for the harness and tests */
     public TreeView<Row> tree() {
         return tree;
+    }
+
+    /** @return the entry ID of the current image, or null; used by the harness */
+    public String currentEntryId() {
+        return currentEntryId;
+    }
+
+    /** @return the tree root's group values at the top level; used by the harness */
+    public List<String> topLevelGroups() {
+        List<String> out = new ArrayList<>();
+        if (tree.getRoot() != null) {
+            for (TreeItem<Row> item : tree.getRoot().getChildren()) {
+                if (item.getValue() instanceof GroupRow g) {
+                    out.add(g.value());
+                }
+            }
+        }
+        return out;
     }
 
     /** @return the checkbox-mode property */

@@ -72,6 +72,7 @@ public final class ThumbnailLoader {
                 if (img != null) {
                     cache.put(id, SwingFXUtils.toFXImage(img, null));
                 } else {
+                    logger.warn("No thumbnail could be built for entry {}", id);
                     failed.add(id);
                 }
             } catch (Exception e) {

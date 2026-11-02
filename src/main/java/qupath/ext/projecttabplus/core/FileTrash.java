@@ -46,6 +46,7 @@ public final class FileTrash {
      */
     public static Result moveToTrash(Path path) {
         if (!isSupported()) {
+            logger.warn("Could not move {} to the trash: the operating system reports no trash support", path);
             return new Result(Outcome.UNSUPPORTED, "the operating system reports no trash support");
         }
         try {
@@ -57,6 +58,7 @@ public final class FileTrash {
                 // The API said yes but the file is still here; treat it as not moved.
                 logger.warn("moveToTrash reported success but {} still exists", path);
             }
+            logger.warn("Could not move {} to the trash: the file is in use by another program or could not be moved", path);
             return new Result(Outcome.FAILED, "the file is in use by another program or could not be moved");
         } catch (RuntimeException e) {
             logger.warn("Could not move {} to trash: {}", path, e.getMessage());

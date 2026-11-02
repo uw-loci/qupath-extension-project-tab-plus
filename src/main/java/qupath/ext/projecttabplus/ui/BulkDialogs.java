@@ -80,6 +80,7 @@ final class BulkDialogs {
                 .resizable()
                 .build();
         DialogButtons.setDefault(dialog, cancel);
+        DialogButtons.installTooltip(dialog, remove, Strings.get("d4.remove.tooltip"));
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() != remove) {
             return Optional.empty();
@@ -118,6 +119,7 @@ final class BulkDialogs {
                 .resizable()
                 .build();
         DialogButtons.setDefault(dialog, cancel);
+        DialogButtons.installTooltip(dialog, clear, Strings.get("d5.clear.tooltip"));
         Optional<ButtonType> r = dialog.showAndWait();
         return r.isPresent() && r.get() == clear;
     }
@@ -128,7 +130,9 @@ final class BulkDialogs {
         TextField folder = new TextField(initialFolder == null ? "" : initialFolder.toString());
         folder.setPrefColumnCount(28);
         HBox.setHgrow(folder, Priority.ALWAYS);
+        folder.setTooltip(Tooltips.of(Strings.get("d6.folder.tooltip")));
         Button browse = new Button(Strings.get("d6.browse"));
+        browse.setTooltip(Tooltips.of(Strings.get("d6.browse.tooltip")));
         Label folderLabel = new Label(Strings.get("d6.folder"));
         folderLabel.setMinWidth(Region.USE_PREF_SIZE);
         folderLabel.setLabelFor(folder);
@@ -241,6 +245,7 @@ final class BulkDialogs {
                 .buttons(overwrite, skip, cancel)
                 .build();
         DialogButtons.setDefault(dialog, skip);
+        DialogButtons.installTooltip(dialog, overwrite, Strings.get("d6.exists.overwrite.tooltip"));
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() == cancel) {
             return Optional.empty();
@@ -268,6 +273,7 @@ final class BulkDialogs {
         failed.setEditable(false);
         failed.setWrapText(true);
         failed.setPrefRowCount(Math.min(LIST_ROWS, Math.max(3, outcome.failures().size())));
+        failed.setTooltip(Tooltips.of(Strings.get("d7.failedList.tooltip")));
         VBox box = new VBox(6, new Label(Strings.get("d7.failedLabel")), failed, wrapped(Strings.get("d7.logHint")));
         box.setPrefWidth(460);
         Dialogs.builder()
@@ -295,6 +301,7 @@ final class BulkDialogs {
         }
         list.setPrefHeight(24.0 * Math.min(LIST_ROWS, Math.max(2, entries.size())) + 4);
         list.setPadding(Insets.EMPTY);
+        list.setTooltip(Tooltips.of(Strings.get("d4.list.tooltip")));
         return list;
     }
 

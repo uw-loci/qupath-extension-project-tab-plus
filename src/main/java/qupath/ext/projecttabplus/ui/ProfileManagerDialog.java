@@ -40,6 +40,7 @@ final class ProfileManagerDialog {
                 }
             }
         });
+        list.setTooltip(Tooltips.of(Strings.get("profile.manage.list.tooltip")));
         list.getSelectionModel().select(pane.savedProfile());
 
         Button duplicate = button("profile.manage.duplicate", "profile.manage.duplicate.tooltip");
@@ -68,6 +69,7 @@ final class ProfileManagerDialog {
         Label stored = new Label(Strings.get("profile.manage.storedIn"));
         TextField path = new TextField(pane.profilesFile().toString());
         path.setEditable(false);
+        path.setTooltip(Tooltips.of(Strings.get("profile.manage.path.tooltip")));
         HBox.setHgrow(list, Priority.ALWAYS);
         HBox middle = new HBox(8, list, buttons);
         BorderPane content = new BorderPane(middle);

@@ -137,6 +137,7 @@ public class ProjectTabPlusExtension implements QuPathExtension {
                 if (builtInTab.getTabPane() == null) {
                     // Undocked into its own window (FXUtils moves the content out and leaves the
                     // tab with no content, so the tab pane is the only reliable sign): nothing to hide.
+                    logger.warn("Built-in Project tab is undocked into its own window; it cannot be hidden");
                     Dialogs.showWarningNotification(Strings.get("notify.title"), Strings.get("notify.builtInUndocked"));
                     ProjectTabPlusPreferences.hideBuiltInProjectTabProperty().set(false);
                 }

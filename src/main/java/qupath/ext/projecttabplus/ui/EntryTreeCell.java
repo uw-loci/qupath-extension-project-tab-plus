@@ -68,6 +68,7 @@ final class EntryTreeCell extends TreeCell<Row> {
     private final HBox groupBox = new HBox(6);
 
     private final Tooltip tooltip = Tooltips.of("");
+    private final Tooltip checkTooltip = Tooltips.of(Strings.get("row.checkbox.tooltip"));
     private final ImageView tooltipImage = new ImageView();
 
     private String shownThumbnailId;
@@ -221,7 +222,7 @@ final class EntryTreeCell extends TreeCell<Row> {
         if (pane.isCheckboxMode()) {
             check.setIndeterminate(false);
             check.setSelected(pane.checkedIds().contains(row.id()));
-            check.setTooltip(null);
+            check.setTooltip(checkTooltip);
             check.setAccessibleText(row.info().name());
             imageBox.getChildren().add(check);
         }

@@ -122,12 +122,15 @@ final class EntryActions {
     void addMetadata(List<ProjectImageEntry<BufferedImage>> entries) {
         Project<BufferedImage> project = qupath.getProject();
         if (project == null || entries.isEmpty()) {
+            logger.error("Add metadata: no project or no image selected");
             Dialogs.showErrorMessage(Strings.get("action.metadata.title"), Strings.get("action.noSelection"));
             return;
         }
         TextField keyField = new TextField();
         TextFields.bindAutoCompletion(keyField, pane.metadataKeys().stream().sorted().toList());
+        keyField.setTooltip(Tooltips.of(Strings.get("action.metadata.key.tooltip")));
         TextField valueField = new TextField();
+        valueField.setTooltip(Tooltips.of(Strings.get("action.metadata.value.tooltip")));
         Label keyLabel = new Label(Strings.get("action.metadata.key"));
         Label valueLabel = new Label(Strings.get("action.metadata.value"));
         keyLabel.setLabelFor(keyField);
@@ -145,6 +148,7 @@ final class EntryActions {
                     ? Strings.get("action.metadata.none") : only.getMetadataSummaryString());
             current.setEditable(false);
             current.setPrefRowCount(3);
+            current.setTooltip(Tooltips.of(Strings.get("action.metadata.current.tooltip")));
             Label currentLabel = new Label(Strings.get("action.metadata.current"));
             currentLabel.setLabelFor(current);
             grid.add(currentLabel, 0, 2);
@@ -178,11 +182,13 @@ final class EntryActions {
     void editDescription(ProjectImageEntry<BufferedImage> entry) {
         Project<BufferedImage> project = qupath.getProject();
         if (project == null || entry == null) {
+            logger.error("Edit description: no project or no image selected");
             Dialogs.showErrorMessage(Strings.get("action.description.title"), Strings.get("action.noSelection"));
             return;
         }
         TextArea editor = new TextArea(entry.getDescription());
         editor.setWrapText(true);
+        editor.setTooltip(Tooltips.of(Strings.get("action.description.tooltip")));
         editor.setPromptText(Strings.format("action.description.prompt", entry.getImageName()));
         Dialog<ButtonType> dialog = Dialogs.builder()
                 .title(Strings.get("action.description.title"))
@@ -265,14 +271,24 @@ final class EntryActions {
         }
     }
 
+    /** Save the project on ptp-bulk (no disk writes on the FX thread), then refresh both tabs on FX. */
     private void syncAndRefresh(Project<BufferedImage> project) {
-        try {
-            project.syncChanges();
-        } catch (IOException e) {
-            logger.error("Error saving project changes: {}", e.getMessage(), e);
-            Dialogs.showErrorNotification(Strings.get("notify.title"), e.getMessage());
-        }
-        qupath.refreshProject();
-        pane.refreshAfterChange();
+        pane.bulkExecutor().submit(() -> {
+            String error = null;
+            try {
+                project.syncChanges();
+            } catch (IOException e) {
+                logger.error("Error saving project changes: {}", e.getMessage(), e);
+                error = e.getMessage();
+            }
+            String message = error;
+            Platform.runLater(() -> {
+                if (message != null) {
+                    Dialogs.showErrorNotification(Strings.get("notify.title"), message);
+                }
+                qupath.refreshProject();
+                pane.refreshAfterChange();
+            });
+        });
     }
 }

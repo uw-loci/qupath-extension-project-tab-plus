@@ -96,6 +96,7 @@ public final class RemoveImageDialogs {
                 .buttons(remove, cancel)
                 .build();
         DialogButtons.setDefault(dialog, cancel);
+        DialogButtons.installTooltip(dialog, remove, Strings.get("d1.remove.tooltip"));
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() != remove) {
             return Optional.empty();
@@ -148,8 +149,8 @@ public final class RemoveImageDialogs {
                 .buttons(keep, trash)
                 .build();
         DialogButtons.setDefault(dialog, keep);
-        installTooltip(dialog, keep, Strings.get("d2.keep.tooltip"));
-        installTooltip(dialog, trash, Strings.get("d2.trash.tooltip"));
+        DialogButtons.installTooltip(dialog, keep, Strings.get("d2.keep.tooltip"));
+        DialogButtons.installTooltip(dialog, trash, Strings.get("d2.trash.tooltip"));
         Optional<ButtonType> r = dialog.showAndWait();
         return r.isPresent() && r.get() == trash;
     }
@@ -183,15 +184,9 @@ public final class RemoveImageDialogs {
                 .buttons(remove, cancel)
                 .build();
         DialogButtons.setDefault(dialog, remove);
+        DialogButtons.installTooltip(dialog, remove, Strings.get("d3.remove.tooltip"));
         Optional<ButtonType> r = dialog.showAndWait();
         return r.isPresent() && r.get() == remove;
-    }
-
-    private static void installTooltip(Dialog<ButtonType> dialog, ButtonType type, String text) {
-        var node = dialog.getDialogPane().lookupButton(type);
-        if (node instanceof javafx.scene.control.Control c) {
-            c.setTooltip(Tooltips.of(text));
-        }
     }
 
     /**

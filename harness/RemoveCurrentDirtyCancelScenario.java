@@ -47,7 +47,7 @@ public final class RemoveCurrentDirtyCancelScenario {
         }
         List<String> buttons = HarnessSupport.buttonTexts(d1);
         HarnessSupport.note("D1 buttons: " + buttons);
-        HarnessSupport.check(buttons.contains("Remove*"), "Remove is the default button of D1");
+        HarnessSupport.check(buttons.contains("Cancel*"), "Cancel is the default button of D1");
         HarnessSupport.check(HarnessSupport.pressButton(d1, "Remove"), "pressed Remove");
 
         Window save = HarnessSupport.waitForWindow("Save changes", 10000);
