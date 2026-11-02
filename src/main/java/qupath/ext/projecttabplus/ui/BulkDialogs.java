@@ -40,6 +40,9 @@ import qupath.lib.projects.ProjectImageEntry;
  */
 final class BulkDialogs {
 
+    /** List property: true when some row shows a full name because its short name is shared. */
+    private static final String FULL_NAMES_SHOWN = "ptp.fullNamesShown";
+
     /** D6 answer. */
     record ExportChoice(Path folder, boolean compress, boolean prettyPrint, boolean excludeMeasurements) {
     }
@@ -62,12 +65,13 @@ final class BulkDialogs {
      * D4.
      *
      * @param shortNames entry ID to short name, for entries whose short name differs; empty when off
+     * @param shared short names two or more images of the project show
      * @return the saved-data-to-trash choice, or empty on cancel
      */
     static Optional<Boolean> confirmRemove(Window owner, List<ProjectImageEntry<BufferedImage>> entries,
-                                           Set<String> openIds, Map<String, String> shortNames) {
+                                           Set<String> openIds, Map<String, String> shortNames, Set<String> shared) {
         int n = entries.size();
-        ListView<NameItem> list = nameList(entries, openIds, Set.of(), shortNames);
+        ListView<NameItem> list = nameList(entries, openIds, Set.of(), shortNames, shared);
         Label openNote = new Label(Strings.plural("d4.openNote.one", "d4.openNote.many", openIds.size()));
         openNote.setWrapText(true);
         openNote.setVisible(!openIds.isEmpty());
@@ -78,7 +82,7 @@ final class BulkDialogs {
         data.setTooltip(Tooltips.of(Strings.get("d4.dataCheckbox.tooltip")));
         Label files = new Label(Strings.get("d4.filesNote"));
         files.setWrapText(true);
-        VBox box = new VBox(8, list, openNote, data, files);
+        VBox box = new VBox(8, list, fullNote(list), openNote, data, files);
         box.setPrefWidth(440);
         ButtonType remove = new ButtonType(Strings.plural("d4.remove.one", "d4.remove.many", n), ButtonData.OK_DONE);
         ButtonType cancel = new ButtonType(Strings.get("d4.cancel"), ButtonData.CANCEL_CLOSE);
@@ -104,14 +108,16 @@ final class BulkDialogs {
      * D5.
      *
      * @param shortNames entry ID to short name, for entries whose short name differs; empty when off
+     * @param shared short names two or more images of the project show
      * @return true to clear
      */
     static boolean confirmClear(Window owner, List<ProjectImageEntry<BufferedImage>> entries,
-                                Set<String> openIds, Set<String> skippedIds, Map<String, String> shortNames) {
+                                Set<String> openIds, Set<String> skippedIds, Map<String, String> shortNames,
+                                Set<String> shared) {
         int n = entries.size();
         Label body = new Label(Strings.get("d5.body"));
         body.setWrapText(true);
-        ListView<NameItem> list = nameList(entries, openIds, skippedIds, shortNames);
+        ListView<NameItem> list = nameList(entries, openIds, skippedIds, shortNames, shared);
         Label skipped = new Label(Strings.plural("d5.skippedNote.one", "d5.skippedNote.many", skippedIds.size()));
         skipped.setWrapText(true);
         skipped.setVisible(!skippedIds.isEmpty());
@@ -122,7 +128,7 @@ final class BulkDialogs {
         open.setManaged(!openIds.isEmpty());
         Label backup = new Label(Strings.get("d5.backupNote"));
         backup.setWrapText(true);
-        VBox box = new VBox(8, body, list, skipped, open, backup);
+        VBox box = new VBox(8, body, list, fullNote(list), skipped, open, backup);
         box.setPrefWidth(440);
         ButtonType clear = new ButtonType(Strings.get("d5.clear"), ButtonData.OK_DONE);
         ButtonType cancel = new ButtonType(Strings.get("d5.cancel"), ButtonData.CANCEL_CLOSE);
@@ -317,26 +323,32 @@ final class BulkDialogs {
 
     /**
      * The D4/D5 list. Short names are shown while the rules are on, except that a short name
-     * shared by two or more listed images shows in full on those rows: two identical lines in a
-     * confirmation that removes or clears would not say which images are meant.
+     * that two or more images of the project show is shown in full: identical lines, or a line
+     * that matches another image's row in the tab, would not say which image a remove or a clear
+     * is meant for. Marks go first, so a long full name never pushes them out of sight.
      */
     private static ListView<NameItem> nameList(List<ProjectImageEntry<BufferedImage>> entries, Set<String> openIds,
-                                               Set<String> skippedIds, Map<String, String> shortNames) {
+                                               Set<String> skippedIds, Map<String, String> shortNames,
+                                               Set<String> shared) {
         Map<String, Integer> uses = new HashMap<>();
         for (ProjectImageEntry<BufferedImage> e : entries) {
             uses.merge(shownName(e, shortNames), 1, Integer::sum);
         }
         ListView<NameItem> list = new ListView<>();
+        boolean anyFull = false;
         for (ProjectImageEntry<BufferedImage> e : entries) {
             String shown = shownName(e, shortNames);
-            String text = uses.get(shown) > 1 ? e.getImageName() : shown;
+            boolean full = shortNames.containsKey(e.getID()) && (uses.get(shown) > 1 || shared.contains(shown));
+            anyFull |= full;
+            String text = full ? e.getImageName() : shown;
             if (skippedIds.contains(e.getID())) {
-                text += "    " + Strings.get("d5.skippedMark");
+                text = Strings.get("d5.skippedMark") + "  " + text;
             } else if (openIds.contains(e.getID())) {
-                text += "    " + Strings.get("d4.openMark");
+                text = Strings.get("d4.openMark") + "  " + text;
             }
             list.getItems().add(new NameItem(text, e.getImageName()));
         }
+        list.getProperties().put(FULL_NAMES_SHOWN, anyFull);
         list.setCellFactory(lv -> new ListCell<>() {
             {
                 setMnemonicParsing(false);
@@ -355,6 +367,16 @@ final class BulkDialogs {
         list.setTooltip(Tooltips.of(shortNames.isEmpty() ? Strings.get("d4.list.tooltip")
                 : Strings.get("d4.list.tooltip") + " " + Strings.get("d4.list.tooltip.shortNames")));
         return list;
+    }
+
+    /** @return a line under the list saying why some rows show full names; hidden when none do */
+    private static Label fullNote(ListView<NameItem> list) {
+        Label l = new Label(Strings.get("d4.fullNamesNote"));
+        l.setWrapText(true);
+        boolean show = Boolean.TRUE.equals(list.getProperties().get(FULL_NAMES_SHOWN));
+        l.setVisible(show);
+        l.setManaged(show);
+        return l;
     }
 
     private static String shownName(ProjectImageEntry<BufferedImage> e, Map<String, String> shortNames) {

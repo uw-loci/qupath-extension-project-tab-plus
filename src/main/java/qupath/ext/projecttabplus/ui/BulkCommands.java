@@ -57,7 +57,8 @@ public final class BulkCommands {
         }
         Map<String, List<QuPathViewer>> open = openViewers(project, entries);
         Map<String, String> shortNames = pane.shortNamesById();
-        Optional<Boolean> choice = BulkDialogs.confirmRemove(qupath.getStage(), entries, open.keySet(), shortNames);
+        Optional<Boolean> choice = BulkDialogs.confirmRemove(qupath.getStage(), entries, open.keySet(), shortNames,
+                pane.sharedShortNames());
         if (choice.isEmpty()) {
             return;
         }
@@ -100,7 +101,8 @@ public final class BulkCommands {
         }
         Map<String, List<QuPathViewer>> open = openViewers(project, entries);
         Map<String, String> shortNames = pane.shortNamesById();
-        if (!BulkDialogs.confirmClear(qupath.getStage(), entries, open.keySet(), skipped, shortNames)) {
+        if (!BulkDialogs.confirmClear(qupath.getStage(), entries, open.keySet(), skipped, shortNames,
+                pane.sharedShortNames())) {
             return;
         }
         List<ImageData<BufferedImage>> closed = closeViewers(open);

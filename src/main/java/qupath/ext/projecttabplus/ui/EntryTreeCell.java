@@ -198,6 +198,9 @@ final class EntryTreeCell extends TreeCell<Row> {
         String groupTip = group.key() == null ? group.value() : group.key().displayName() + ": " + group.value();
         if (group.key() != null && group.key().builtin() == GroupingKey.Builtin.IMAGE_NAME && pane.shortNamesActive()) {
             groupTip += "\n" + Strings.get("row.tooltip.shortGroup");
+            if (pane.sharedShortNames().contains(group.value())) {
+                groupTip += "\n" + Strings.get("row.tooltip.sharedGroup");
+            }
         }
         tooltip.setText(currentInside ? groupTip + "\n" + Strings.get("row.tooltip.openInside") : groupTip);
         setTooltip(pane.isContextMenuShowing() ? null : tooltip);

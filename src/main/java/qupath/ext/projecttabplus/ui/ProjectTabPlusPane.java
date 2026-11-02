@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -241,7 +242,9 @@ public final class ProjectTabPlusPane extends BorderPane {
     private boolean builtShortNames;
     private int builtSharedNames;
     private int builtSharedRows;
-    /** Set by Apply in the rules window: report shared short names until a build has none. */
+    /** Short names two or more images of the project show in the last build. */
+    private Set<String> builtSharedSet = Set.of();
+    /** Set by Apply in the rules window: the next build's shared-name status replaces any older message. */
     private boolean collisionNotice;
     private final EntryActions entryActions;
 
@@ -1030,12 +1033,28 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private void loadNameRules(Project<BufferedImage> project) {
         NameRuleSet set = NameRuleSet.EMPTY;
+        String notice = null;
         if (project != null) {
-            NameRulesJson.Parsed parsed = NameRulesJson.parse(project.getMetadata().get(NAME_RULES_KEY));
+            String stored = project.getMetadata().get(NAME_RULES_KEY);
+            NameRulesJson.Parsed parsed = NameRulesJson.parse(stored);
             set = parsed.rules();
+            if (stored != null && !stored.isBlank() && !parsed.valid()) {
+                notice = Strings.get("status.nameRulesUnreadable");
+            } else if (parsed.kept() > 0) {
+                notice = Strings.plural("status.nameRulesKept.one", "status.nameRulesKept.many", parsed.kept());
+            }
         }
         nameRules.set(set);
         syncToggle();
+        if (notice != null) {
+            String text = notice;
+            Platform.runLater(() -> setStickyStatus(text));
+        }
+    }
+
+    /** @return the short names two or more images show in the last build; empty while short names are off */
+    Set<String> sharedShortNames() {
+        return builtSharedSet;
     }
 
     /** @return the rules applied to the tab */
@@ -1306,7 +1325,8 @@ public final class ProjectTabPlusPane extends BorderPane {
                     }
                     rows.add(new ImageRow(info, entry));
                 }
-                int[] nameStats = sharedShortNames(rows);
+                Set<String> sharedSet = new HashSet<>();
+                int[] nameStats = sharedShortNames(rows, sharedSet);
                 if (masked) {
                     Collections.shuffle(rows);
                 }
@@ -1334,7 +1354,7 @@ public final class ProjectTabPlusPane extends BorderPane {
                     if (gen != generation.get()) {
                         return;
                     }
-                    applyBuild(rows, built, keys, values, selectedId, filter, rules != null, nameStats);
+                    applyBuild(rows, built, keys, values, selectedId, filter, rules != null, nameStats, sharedSet);
                 });
                 if (!sweepFirst) {
                     summaryExecutor.submit(() -> {
@@ -1389,18 +1409,19 @@ public final class ProjectTabPlusPane extends BorderPane {
         Platform.runLater(this::hideBusy);
     }
 
-    /** @return {shared short names, images showing one} */
-    private static int[] sharedShortNames(List<ImageRow> rows) {
+    /** @return {shared short names, images showing one}; fills {@code shared} with those names */
+    private static int[] sharedShortNames(List<ImageRow> rows, Set<String> shared) {
         Map<String, Integer> counts = new HashMap<>();
         for (ImageRow r : rows) {
             counts.merge(r.info().displayName(), 1, Integer::sum);
         }
         int names = 0;
         int images = 0;
-        for (int n : counts.values()) {
-            if (n > 1) {
+        for (Map.Entry<String, Integer> e : counts.entrySet()) {
+            if (e.getValue() > 1) {
                 names++;
-                images += n;
+                images += e.getValue();
+                shared.add(e.getKey());
             }
         }
         return new int[] {names, images};
@@ -1408,14 +1429,14 @@ public final class ProjectTabPlusPane extends BorderPane {
 
     private void applyBuild(List<ImageRow> rows, TreeBuilder.BuiltTree built, Set<String> keys,
                             Map<String, Set<String>> values, String selectedId, EntryFilter filter,
-                            boolean shortNames, int[] nameStats) {
+                            boolean shortNames, int[] nameStats, Set<String> sharedSet) {
         hideBusy();
         builtShortNames = shortNames;
         builtSharedNames = shortNames ? nameStats[0] : 0;
         builtSharedRows = shortNames ? nameStats[1] : 0;
-        if (builtSharedNames == 0) {
-            collisionNotice = false;
-        }
+        builtSharedSet = shortNames ? Set.copyOf(sharedSet) : Set.of();
+        boolean afterApply = collisionNotice;
+        collisionNotice = false;
         allRows = rows;
         lastBuilt = built;
         metadataKeys = keys;
@@ -1441,6 +1462,12 @@ public final class ProjectTabPlusPane extends BorderPane {
         if (missingProfileName != null) {
             setStickyStatus(Strings.format("status.profileNotOnMachine", missingProfileName));
             missingProfileName = null;
+        }
+        if (afterApply && builtSharedNames > 0) {
+            // After Apply the shared-name status replaces any older message, a profile's included.
+            statusSticky = false;
+            statusRevert.stop();
+            updateStatus();
         }
         if (pendingJumpId != null) {
             String id = pendingJumpId;
@@ -1660,7 +1687,9 @@ public final class ProjectTabPlusPane extends BorderPane {
     private String nameOf(String id) {
         TreeItem<Row> item = itemById.get(id);
         if (item != null && item.getValue() instanceof ImageRow row) {
-            return row.info().displayName();
+            // A shared short name would not say which image it is.
+            String shown = row.info().displayName();
+            return builtSharedSet.contains(shown) ? row.info().name() : shown;
         }
         Project<BufferedImage> project = qupath.getProject();
         if (project != null) {
@@ -1925,7 +1954,10 @@ public final class ProjectTabPlusPane extends BorderPane {
             // A transient message is showing; it reverts to the totals by itself.
             return;
         }
-        if (collisionNotice && builtSharedNames > 0) {
+        // Shared short names are reported whenever they exist, except while a search or filter is
+        // on: then the count of shown images matters more, and the note returns when it clears.
+        boolean filtering = lastBuilt != null && lastBuilt.shown() != lastBuilt.total();
+        if (builtSharedNames > 0 && !filtering) {
             status.setText(Strings.plural("status.nameCollisions.one", "status.nameCollisions.many",
                     builtSharedNames, builtSharedRows));
             ThemeColors.textFill(status, ThemeColors.WARNING);
@@ -1933,9 +1965,14 @@ public final class ProjectTabPlusPane extends BorderPane {
             status.setText(idleStatusText());
             ThemeColors.textFill(status, "-fx-text-base-color");
         }
-        status.getTooltip().setText(builtShortNames
-                ? Strings.get("status.tooltip") + " " + Strings.get("status.tooltip.shortNames")
-                : Strings.get("status.tooltip"));
+        String tip = Strings.get("status.tooltip");
+        if (builtShortNames) {
+            tip += " " + Strings.get("status.tooltip.shortNames");
+        }
+        if (builtSharedNames > 0) {
+            tip += " " + Strings.get("status.tooltip.shared");
+        }
+        status.getTooltip().setText(tip);
         int n = checkedIds.size();
         bulkCount.setText(Strings.plural("bulk.count.one", "bulk.count.many", n, allRows.size()));
     }
