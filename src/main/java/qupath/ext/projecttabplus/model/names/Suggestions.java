@@ -29,6 +29,13 @@ public final class Suggestions {
      */
     public static final double TEXT_SHARE = 0.5;
 
+    /**
+     * Fewest names a repeated text must appear in. Two names sharing a word say little, and in
+     * a small project the words of a start that falls just short of {@link #MIN_SHARE} would
+     * otherwise be proposed one by one.
+     */
+    public static final int MIN_TEXT_NAMES = 3;
+
     /** Shortest prefix worth proposing. */
     public static final int MIN_PREFIX = 3;
 
@@ -134,7 +141,8 @@ public final class Suggestions {
      * The start to hide: the longest start every name shares, cut back to the last {@code _},
      * {@code -} or space so {@code _1} and {@code _10} do not leave a stray digit; when that is
      * shorter than {@value #MIN_PREFIX} characters, the longest such start shared by at least
-     * {@link #MIN_SHARE} of the names.
+     * {@link #MIN_SHARE} of the names, or by all but one of them in a project of four or more
+     * (so 3 of 4 qualifies, where 80 percent would need all 4).
      *
      * @param names the names
      * @return the proposal, or null when there are fewer than two names or nothing is shared
@@ -169,6 +177,9 @@ public final class Suggestions {
             }
         }
         int need = (int) Math.ceil(MIN_SHARE * total);
+        if (total >= 4) {
+            need = Math.min(need, total - 1);
+        }
         String best = null;
         int bestCount = 0;
         for (Map.Entry<String, Integer> e : counts.entrySet()) {
@@ -198,7 +209,7 @@ public final class Suggestions {
     /**
      * Pieces split at {@code _} and space, with the separator in front, that contain a letter,
      * sit outside the prefix, the extension and any QuPath notes after it, and appear in at least
-     * {@link #TEXT_SHARE} of names.
+     * {@link #TEXT_SHARE} of names and in at least {@value #MIN_TEXT_NAMES}.
      */
     private static List<Suggestion> repeatedText(List<String> names, String prefix) {
         int total = names.size();
@@ -240,7 +251,7 @@ public final class Suggestions {
         int need = (int) Math.ceil(TEXT_SHARE * total);
         List<Suggestion> out = new ArrayList<>();
         counts.entrySet().stream()
-                .filter(e -> e.getValue() >= need && e.getValue() >= 2)
+                .filter(e -> e.getValue() >= need && e.getValue() >= MIN_TEXT_NAMES)
                 .sorted(Comparator.<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue).reversed()
                         .thenComparing(Map.Entry.comparingByKey()))
                 .limit(MAX_TEXT)

@@ -19,14 +19,44 @@ public final class NameRuleSet {
 
     private final boolean enabled;
     private final List<NameRule> rules;
+    private final int version;
 
     /**
      * @param enabled whether short names are shown
      * @param rules the rules, applied in order
      */
     public NameRuleSet(boolean enabled, List<NameRule> rules) {
+        this(enabled, rules, 0);
+    }
+
+    /**
+     * @param enabled whether short names are shown
+     * @param rules the rules, applied in order
+     * @param version the format version the rules were read from, 0 for none; a save never
+     *     writes a lower version
+     */
+    public NameRuleSet(boolean enabled, List<NameRule> rules, int version) {
         this.enabled = enabled;
         this.rules = List.copyOf(rules);
+        this.version = Math.max(0, version);
+    }
+
+    /** @return the format version the rules were read from, 0 when made here */
+    public int version() {
+        return version;
+    }
+
+    /**
+     * @param version a version the set must not be written below
+     * @return a copy that keeps the higher of this set's version and that one
+     */
+    public NameRuleSet withVersionAtLeast(int version) {
+        return version <= this.version ? this : new NameRuleSet(enabled, rules, version);
+    }
+
+    /** @return true when a rule is kept from a newer Project+ or could not be read */
+    public boolean hasKept() {
+        return rules.stream().anyMatch(r -> r instanceof KeptRule);
     }
 
     /** @return whether short names are switched on */
@@ -49,7 +79,7 @@ public final class NameRuleSet {
      * @return a copy with that flag
      */
     public NameRuleSet withEnabled(boolean enabled) {
-        return enabled == this.enabled ? this : new NameRuleSet(enabled, rules);
+        return enabled == this.enabled ? this : new NameRuleSet(enabled, rules, version);
     }
 
     /**
@@ -57,7 +87,7 @@ public final class NameRuleSet {
      * @return a copy with those rules
      */
     public NameRuleSet withRules(List<NameRule> rules) {
-        return new NameRuleSet(enabled, rules);
+        return new NameRuleSet(enabled, rules, version);
     }
 
     /** @return true when at least one finished rule is on */
@@ -126,17 +156,18 @@ public final class NameRuleSet {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof NameRuleSet other && enabled == other.enabled && rules.equals(other.rules);
+        return o instanceof NameRuleSet other && enabled == other.enabled && version == other.version
+                && rules.equals(other.rules);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, rules);
+        return Objects.hash(enabled, rules, version);
     }
 
     @Override
     public String toString() {
-        return "NameRuleSet[enabled=" + enabled + ", rules=" + rules + "]";
+        return "NameRuleSet[enabled=" + enabled + ", version=" + version + ", rules=" + rules + "]";
     }
 
     /**

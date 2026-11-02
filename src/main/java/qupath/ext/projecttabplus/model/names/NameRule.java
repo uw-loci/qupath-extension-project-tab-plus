@@ -4,7 +4,7 @@ package qupath.ext.projecttabplus.model.names;
  * One display-name rule. Rules only hide characters, so every character of a short name is a
  * character of the full name. A rule that is off, or unfinished, is skipped.
  */
-public sealed interface NameRule permits PrefixRule, HideTextRule, HideExtensionRule, KeepPiecesRule {
+public sealed interface NameRule permits PrefixRule, HideTextRule, HideExtensionRule, KeepPiecesRule, KeptRule {
 
     /** @return true when the rule is turned on */
     boolean on();

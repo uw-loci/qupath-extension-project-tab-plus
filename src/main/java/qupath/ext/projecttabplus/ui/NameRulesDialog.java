@@ -55,6 +55,7 @@ import qupath.ext.projecttabplus.model.ImageRow;
 import qupath.ext.projecttabplus.model.names.HideExtensionRule;
 import qupath.ext.projecttabplus.model.names.HideTextRule;
 import qupath.ext.projecttabplus.model.names.KeepPiecesRule;
+import qupath.ext.projecttabplus.model.names.KeptRule;
 import qupath.ext.projecttabplus.model.names.NamePreview;
 import qupath.ext.projecttabplus.model.names.NameRule;
 import qupath.ext.projecttabplus.model.names.NameRuleSet;
@@ -133,9 +134,6 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             if (shortName.noPiece()) {
                 return Strings.get("names.note.noPiece");
             }
-            if (fewer) {
-                return Strings.get("names.note.fewer");
-            }
             if (!shortName.changed()) {
                 return Strings.get("names.note.unchanged");
             }
@@ -154,6 +152,11 @@ final class NameRulesDialog implements NameRuleEditors.Host {
     private final Stage stage = new Stage();
     private final ObservableList<NameRule> rules = FXCollections.observableArrayList();
     private NameRuleSet applied;
+    /** The format version the working rules must not be saved below: the applied set's, or a pasted one's. */
+    private int workingVersion;
+    /** Rules and Keep pieces counts of the last preview, to notice when an edit above changes them. */
+    private List<NameRule> lastPreviewRules = List.of();
+    private int[] lastPiecesSeen = new int[0];
 
     private final ListView<NameRule> list = new ListView<>(rules);
     private final MenuButton addRule = new MenuButton(Strings.get("names.add"));
@@ -196,6 +199,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
     NameRulesDialog(ProjectTabPlusPane pane) {
         this.pane = pane;
         this.applied = pane.nameRulesProperty().get();
+        this.workingVersion = applied.version();
         stage.initOwner(pane.qupath().getStage());
         stage.initModality(Modality.NONE);
         stage.setTitle(Strings.get(TITLE_KEY));
@@ -243,6 +247,13 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         scene.getStylesheets().add(Objects.requireNonNull(
                 ProjectTabPlusPane.class.getResource("project-tab-plus.css")).toExternalForm());
         stage.setScene(scene);
+        // Esc closes (or asks) from anywhere, the rule list included, which consumes it otherwise.
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.ESCAPE && !popupShowing(scene.getFocusOwner())) {
+                e.consume();
+                requestClose();
+            }
+        });
         stage.setOnCloseRequest(e -> {
             e.consume();
             requestClose();
@@ -269,6 +280,12 @@ final class NameRulesDialog implements NameRuleEditors.Host {
     }
 
     // ------------------------------------------------------------------ construction
+
+    /** @return true when a focused combo box or menu button has its list open, so Esc is its own */
+    private static boolean popupShowing(Node focus) {
+        return focus instanceof javafx.scene.control.ComboBoxBase<?> c && c.isShowing()
+                || focus instanceof MenuButton m && m.isShowing();
+    }
 
     private static void styleBanner(Label l) {
         l.setWrapText(true);
@@ -362,6 +379,11 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         TableColumn<PreviewRow, String> noteCol = new TableColumn<>(Strings.get("names.col.note"));
         noteCol.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().note()));
         noteCol.setCellFactory(c -> new NoteCell());
+        // Rows marked [!] sort first, then other notes, then rows without one.
+        noteCol.setComparator((a, b) -> {
+            int r = Integer.compare(noteRank(a), noteRank(b));
+            return r != 0 ? r : a.compareToIgnoreCase(b);
+        });
         header(fullCol, "names.col.full", "names.col.full.tooltip", 580, 200);
         header(shownCol, "names.col.shown", "names.col.shown.tooltip", 280, 150);
         header(noteCol, "names.col.note", "names.col.note.tooltip", 140, 100);
@@ -393,6 +415,10 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         section.setPadding(new Insets(6));
         section.setMinHeight(220);
         return section;
+    }
+
+    private static int noteRank(String note) {
+        return note == null || note.isEmpty() ? 2 : note.startsWith("[!]") ? 0 : 1;
     }
 
     /** Column headers are labels, so an underscore in a heading never becomes a mnemonic. */
@@ -479,6 +505,20 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             }
             int i = getIndex();
             String sentence = sentence(item);
+            if (item instanceof KeptRule k) {
+                check.setSelected(false);
+                check.setDisable(true);
+                check.setAccessibleText(sentence);
+                text.setText((i + 1) + ". " + sentence);
+                text.getStyleClass().remove("ptp-rule-off");
+                text.getStyleClass().add("ptp-rule-off");
+                count.setText(Strings.get("names.rule.kept.count"));
+                NameRuleEditors.warn(count, false);
+                setTooltip(Tooltips.of(Strings.format("names.rule.kept.tooltip", k.label())));
+                setGraphic(box);
+                return;
+            }
+            check.setDisable(false);
             check.setSelected(item.on());
             check.setAccessibleText(sentence + ", " + Strings.get(item.on() ? "names.a11y.on" : "names.a11y.off"));
             text.setText((i + 1) + ". " + (item.on() ? "" : Strings.get("names.rule.off") + " ") + sentence);
@@ -514,6 +554,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             case HideExtensionRule e -> Strings.get(e.doubleExtension() ? "names.rule.extDouble" : "names.rule.ext");
             case KeepPiecesRule k -> Strings.format("names.rule.pieces", pieceList(k),
                     NameRuleEditors.separatorLabel(k.separator()).trim());
+            case KeptRule k -> Strings.get(k.newer() ? "names.rule.kept.newer" : "names.rule.kept.unreadable");
         };
     }
 
@@ -643,6 +684,10 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             pe.field().requestFocus();
         } else if (editor instanceof NameRuleEditors.TextEditor te) {
             te.field().requestFocus();
+        } else if (editor instanceof NameRuleEditors.PiecesEditor pe) {
+            pe.separatorBox().requestFocus();
+        } else if (editor instanceof NameRuleEditors.ExtensionEditor ee) {
+            ee.doubleBox().requestFocus();
         }
     }
 
@@ -805,6 +850,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             r.skipped = selRule != null && !(selRule instanceof KeepPiecesRule)
                     && !NameRuleEditors.changes(selRule, r.input);
         }
+        noticeKeepPiecesChange(p);
         counts.setText(countLine(report));
         updateFilterItems(selRule);
         applyFilter();
@@ -814,6 +860,30 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             editor.update(p);
         }
         refreshState();
+    }
+
+    /**
+     * An edit to a rule above a Keep pieces rule can change how many pieces the names have when
+     * they reach it, and so which pieces it keeps; say so in the status line.
+     */
+    private void noticeKeepPiecesChange(NamePreview p) {
+        List<NameRule> now = new ArrayList<>(rules);
+        int[] seen = new int[now.size()];
+        for (int j = 0; j < now.size(); j++) {
+            seen[j] = p.piecesSeen(j);
+        }
+        if (now.size() == lastPreviewRules.size() && seen.length == lastPiecesSeen.length) {
+            for (int j = 0; j < now.size(); j++) {
+                if (now.get(j) instanceof KeepPiecesRule && now.get(j).equals(lastPreviewRules.get(j))
+                        && !now.subList(0, j).equals(lastPreviewRules.subList(0, j))
+                        && seen[j] != lastPiecesSeen[j] && lastPiecesSeen[j] > 0) {
+                    setEvent(Strings.format("names.status.piecesChanged", j + 1, seen[j], lastPiecesSeen[j]), true);
+                    break;
+                }
+            }
+        }
+        lastPreviewRules = now;
+        lastPiecesSeen = seen;
     }
 
     private String countLine(NameRuleSet.Report r) {
@@ -923,8 +993,15 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         } else if (dirty) {
             text = Strings.get("names.status.dirty");
             warning = false;
+        } else if (masked) {
+            text = Strings.get("names.status.applyMasked");
+            warning = false;
+        } else if (rules.isEmpty()) {
+            text = Strings.get(cardMode && card != null && !card.ticked().isEmpty()
+                    ? "names.status.addSuggestionsFirst" : "names.status.addRuleFirst");
+            warning = false;
         } else {
-            text = "";
+            text = Strings.get("names.status.clean");
             warning = false;
         }
         status.setText(text);
@@ -938,7 +1015,8 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         if (masked) {
             key = "context.showTruncated.masked";
         } else if (!applied.anyOn()) {
-            key = "context.showTruncated.noRules";
+            key = rules.stream().anyMatch(r -> r.on() && r.finished())
+                    ? "names.showTruncated.applyFirst" : "context.showTruncated.noRules";
         } else {
             key = "context.showTruncated";
         }
@@ -969,7 +1047,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             return;
         }
         List<NameRule> working = new ArrayList<>(rules);
-        NameRuleSet set = new NameRuleSet(new NameRuleSet(true, working).anyOn(), working);
+        NameRuleSet set = new NameRuleSet(new NameRuleSet(true, working).anyOn(), working, workingVersion);
         applied = set;
         setEvent(Strings.get("names.status.saving"), false);
         pane.requestCollisionNotice();
@@ -995,6 +1073,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             return;
         }
         rules.setAll(applied.rules());
+        workingVersion = applied.version();
         if (rules.isEmpty()) {
             enterCard();
         } else {
@@ -1021,7 +1100,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             return;
         }
         ClipboardContent content = new ClipboardContent();
-        content.putString(NameRulesJson.write(new NameRuleSet(true, done)));
+        content.putString(NameRulesJson.write(new NameRuleSet(true, done, workingVersion)));
         Clipboard.getSystemClipboard().setContent(content);
         setEvent(Strings.plural("names.status.copied.one", "names.status.copied.many", done.size()), false);
     }
@@ -1037,9 +1116,20 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             setEvent(Strings.get("names.status.pasteInvalid"), true);
             return;
         }
-        List<NameRule> pasted = parsed.rules().rules();
+        // A rule of a newer kind is kept as is, as when it is stored; one that cannot be read is left out.
+        List<NameRule> pasted = new ArrayList<>();
+        int newer = 0;
+        int dropped = 0;
+        for (NameRule r : parsed.rules().rules()) {
+            if (r instanceof KeptRule k && !k.newer()) {
+                dropped++;
+            } else {
+                newer += r instanceof KeptRule ? 1 : 0;
+                pasted.add(r);
+            }
+        }
         if (pasted.isEmpty()) {
-            setEvent(Strings.format("names.status.pastedPart", 0, parsed.found()), true);
+            setEvent(Strings.plural("names.status.pasteNone.one", "names.status.pasteNone.many", parsed.found()), true);
             return;
         }
         boolean replace = true;
@@ -1060,6 +1150,7 @@ final class NameRulesDialog implements NameRuleEditors.Host {
             replace = answer == replaceType;
         }
         int first = replace ? 0 : rules.size();
+        workingVersion = Math.max(workingVersion, parsed.rules().version());
         if (replace) {
             rules.setAll(pasted);
         } else {
@@ -1070,10 +1161,18 @@ final class NameRulesDialog implements NameRuleEditors.Host {
         list.getSelectionModel().clearSelection();
         list.getSelectionModel().select(first);
         edited();
-        if (parsed.skipped().isEmpty()) {
+        if (newer == 0 && dropped == 0) {
             setEvent(Strings.plural("names.status.pasted.one", "names.status.pasted.many", pasted.size()), false);
         } else {
-            setEvent(Strings.format("names.status.pastedPart", pasted.size(), parsed.found()), true);
+            StringBuilder sb = new StringBuilder(Strings.format("names.status.pastedSome", pasted.size(), parsed.found()));
+            if (newer > 0) {
+                sb.append(' ').append(Strings.plural("names.status.pastedNewer.one", "names.status.pastedNewer.many", newer));
+            }
+            if (dropped > 0) {
+                sb.append(' ').append(Strings.plural("names.status.pastedDropped.one", "names.status.pastedDropped.many",
+                        dropped));
+            }
+            setEvent(sb.toString(), true);
         }
     }
 
@@ -1256,8 +1355,6 @@ final class NameRulesDialog implements NameRuleEditors.Host {
                 getStyleClass().add("ptp-warn-note");
                 tip = Strings.get("names.note.noPiece.tooltip");
                 a11y = Strings.get("names.a11y.noPiece");
-            } else if (row.fewer) {
-                tip = Strings.get("names.note.fewer.tooltip");
             } else {
                 tip = Strings.get("names.note.unchanged.tooltip");
             }
@@ -1273,20 +1370,10 @@ final class NameRulesDialog implements NameRuleEditors.Host {
 
     /** The piece menu asked to untick a chip of the Keep pieces rule at a position. */
     void hidePieceOf(int ruleIndex, int piece) {
-        NameRule r = rules.get(ruleIndex);
-        if (!(r instanceof KeepPiecesRule k)) {
-            return;
+        if (rules.get(ruleIndex) instanceof KeepPiecesRule k) {
+            replaceRule(ruleIndex, k.withPieceHidden(piece));
+            selectRule(ruleIndex);
         }
-        java.util.SortedSet<Integer> kept = new java.util.TreeSet<>(k.kept());
-        int pieces = Math.max(k.pieces(), piece + 1);
-        if (k.keepLater()) {
-            for (int i = k.pieces(); i < pieces; i++) {
-                kept.add(i);
-            }
-        }
-        kept.remove(piece);
-        replaceRule(ruleIndex, new KeepPiecesRule(k.separator(), kept, pieces, k.keepLast(), kept.contains(pieces - 1), k.on()));
-        selectRule(ruleIndex);
     }
 
     /** Turn one rule off, from the piece menu. */

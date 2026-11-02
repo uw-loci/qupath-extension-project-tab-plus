@@ -25,9 +25,11 @@ public final class NamePreview {
     private final String leftover;
     private final int leftoverCount;
     private final String leftoverExample;
+    private final int[] piecesSeen;
 
     private NamePreview(NameRuleSet set, List<String> names, int selected) {
         this.report = set.applyAll(names);
+        this.piecesSeen = piecesSeen(set, names);
         this.selected = selected >= 0 && selected < set.rules().size() ? selected : -1;
         List<String> in = new ArrayList<>();
         int[] counts = new int[0];
@@ -107,6 +109,36 @@ public final class NamePreview {
      */
     public static NamePreview compute(NameRuleSet set, List<String> names, int selected) {
         return new NamePreview(set, names, selected);
+    }
+
+    /** Most pieces any name has as it reaches each Keep pieces rule; 0 at other rules. */
+    private static int[] piecesSeen(NameRuleSet set, List<String> names) {
+        List<NameRule> rules = set.rules();
+        int[] seen = new int[rules.size()];
+        if (rules.stream().noneMatch(r -> r instanceof KeepPiecesRule)) {
+            return seen;
+        }
+        for (String n : names) {
+            Mapped m = Mapped.of(n);
+            for (int i = 0; i < rules.size(); i++) {
+                NameRule r = rules.get(i);
+                if (r instanceof KeepPiecesRule k && !k.separator().isEmpty()) {
+                    seen[i] = Math.max(seen[i], KeepPiecesRule.split(m.text(), k.separator()).size());
+                }
+                if (r.on() && r.finished()) {
+                    m = r.apply(m, i);
+                }
+            }
+        }
+        return seen;
+    }
+
+    /**
+     * @param ruleIndex a rule's position
+     * @return the most pieces any name has as it reaches that Keep pieces rule, or 0 for another kind
+     */
+    public int piecesSeen(int ruleIndex) {
+        return ruleIndex >= 0 && ruleIndex < piecesSeen.length ? piecesSeen[ruleIndex] : 0;
     }
 
     /** @return the short names and counts */

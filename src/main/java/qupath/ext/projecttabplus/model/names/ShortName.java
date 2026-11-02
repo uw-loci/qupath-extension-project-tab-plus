@@ -33,8 +33,30 @@ public final class ShortName {
         this.full = m.full();
         this.removedBy = m.removedByArray();
         this.noPiece = m.noPiece();
-        this.emptyFallback = m.text().isEmpty() && !full.isEmpty();
+        this.emptyFallback = !full.isEmpty() && !identifies(m.text());
         this.display = emptyFallback ? full : m.text();
+    }
+
+    /**
+     * @param text a short name
+     * @return true when it has a letter or digit outside its file extension and QuPath notes,
+     *     so it can tell one image from another; false for {@code ""}, {@code "_"} or {@code ".svs"}
+     */
+    public static boolean identifies(String text) {
+        // A leading character, so a name that is only " (1)" or ".svs" still reads as a note or an extension.
+        String t = "x" + text;
+        String stem = t.substring(0, Math.max(1, NamePieces.notesStart(t)));
+        int ext = HideExtensionRule.extensionStart(stem, true);
+        if (ext > 0) {
+            stem = stem.substring(0, ext);
+        }
+        stem = stem.substring(1);
+        for (int i = 0; i < stem.length(); i++) {
+            if (Character.isLetterOrDigit(stem.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -50,12 +72,12 @@ public final class ShortName {
         return full;
     }
 
-    /** @return what the row shows: the short name, or the full name when the rules emptied it */
+    /** @return what the row shows: the short name, or the full name when the rules leave nothing that identifies it */
     public String display() {
         return display;
     }
 
-    /** @return true when the rules would leave nothing, so the full name is shown */
+    /** @return true when the rules would leave no letter or digit outside the extension, so the full name is shown */
     public boolean emptyFallback() {
         return emptyFallback;
     }

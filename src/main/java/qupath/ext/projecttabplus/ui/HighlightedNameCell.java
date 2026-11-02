@@ -16,13 +16,11 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import qupath.ext.projecttabplus.model.names.HideExtensionRule;
-import qupath.ext.projecttabplus.model.names.HideTextRule;
-import qupath.ext.projecttabplus.model.names.KeepPiecesRule;
 import qupath.ext.projecttabplus.model.names.Mapped;
 import qupath.ext.projecttabplus.model.names.NamePieces;
 import qupath.ext.projecttabplus.model.names.NameRule;
 import qupath.ext.projecttabplus.model.names.NameRuleSet;
-import qupath.ext.projecttabplus.model.names.PrefixRule;
+import qupath.ext.projecttabplus.model.names.PieceOffers;
 import qupath.ext.projecttabplus.model.names.ShortName;
 
 /**
@@ -30,8 +28,6 @@ import qupath.ext.projecttabplus.model.names.ShortName;
  * piece opens a menu that turns it into a rule; a click on a hidden run says which rule hid it.
  */
 final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, NameRulesDialog.PreviewRow> {
-
-    private static final String PIECE_SEPARATORS = NamePieces.SEPARATORS;
 
     private final NameRulesDialog dialog;
     private final NameRunsBox runs = new NameRunsBox();
@@ -146,114 +142,61 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
         String text = piece.text(full);
         items.add(title(Strings.format("names.piece.title", text, full)));
         items.add(new SeparatorMenuItem());
-        List<String> names = new ArrayList<>();
-        for (NameRulesDialog.PreviewRow r : dialog.rows()) {
-            names.add(r.full);
-        }
         if (piece.kind() == NamePieces.Kind.EXTENSION && piece.end() == full.length()) {
             MenuItem hideExt = item(Strings.get("names.piece.hideExt"));
             hideExt.setOnAction(e -> dialog.insertRule(dialog.workingRules().size(), new HideExtensionRule(true, true)));
             items.add(hideExt);
             return items;
         }
-        // Hide this text anywhere, with the separator in front (or behind, for the first piece)
-        // so no doubled separator is left. An extension before a note keeps its own period.
-        String hideText;
-        if (piece.start() > 0 && PIECE_SEPARATORS.indexOf(full.charAt(piece.start() - 1)) >= 0) {
-            hideText = full.substring(piece.start() - 1, piece.end());
-        } else if (piece.start() == 0 && piece.end() < full.length()
-                && PIECE_SEPARATORS.indexOf(full.charAt(piece.end())) >= 0) {
-            hideText = full.substring(0, piece.end() + 1);
-        } else {
-            hideText = text;
+        // Every offer is built from the name as the rules above it leave it, so the text and the
+        // count are those of the short name, and a rule that would cut into other pieces or make
+        // names shared says so.
+        NameRuleSet set = dialog.workingSet();
+        List<String> names = new ArrayList<>();
+        for (NameRulesDialog.PreviewRow r : dialog.rows()) {
+            names.add(r.full);
         }
-        int textCount = (int) names.stream().filter(n -> n.contains(hideText)).count();
-        MenuItem hideAnywhere = item(Strings.plural("names.piece.hideText.one", "names.piece.hideText.many", textCount, hideText));
-        hideAnywhere.setOnAction(e -> dialog.insertRule(dialog.workingRules().size(), new HideTextRule(hideText, false, true)));
-        items.add(hideAnywhere);
-        if (piece.kind() != NamePieces.Kind.WORD) {
+        int position = piece.start() + Math.max(0, Math.min(index - piece.start(), piece.end() - piece.start() - 1));
+        PieceOffers.Offer hide = PieceOffers.hideText(set, names, full, position);
+        if (hide != null) {
+            String label = Strings.plural("names.piece.hideText.one", "names.piece.hideText.many", hide.count(), hide.text());
+            items.add(offerItem(dialog, hide, label));
+        }
+        if (piece.kind() == NamePieces.Kind.WORD) {
             // A note or an extension before one is not a Keep pieces piece, and hiding the
             // start through it would hide the whole name.
-            return items;
-        }
-
-        MenuItem hideNumber = hidePieceItem(dialog, full, piece.start());
-        if (hideNumber != null) {
-            items.add(hideNumber);
-        }
-
-        int startEnd = piece.end() < full.length() && PIECE_SEPARATORS.indexOf(full.charAt(piece.end())) >= 0
-                ? piece.end() + 1 : piece.end();
-        String prefix = full.substring(0, startEnd);
-        int startCount = (int) names.stream().filter(n -> n.startsWith(prefix)).count();
-        MenuItem hideStart = item(Strings.plural("names.piece.hideStart.one", "names.piece.hideStart.many", startCount));
-        hideStart.setOnAction(e -> {
-            List<NameRule> rules = dialog.workingRules();
-            for (int i = 0; i < rules.size(); i++) {
-                if (rules.get(i) instanceof PrefixRule p) {
-                    dialog.replaceRule(i, new PrefixRule(prefix, p.on()));
-                    dialog.selectRule(i);
-                    return;
-                }
+            PieceOffers.Offer number = PieceOffers.hidePiece(set, names, full, position);
+            if (number != null) {
+                items.add(offerItem(dialog, number, Strings.format("names.piece.hideNumber", number.piece() + 1)));
             }
-            dialog.insertRule(0, new PrefixRule(prefix, true));
-        });
-        items.add(hideStart);
+            PieceOffers.Offer start = PieceOffers.hideStart(set, names, full, position);
+            if (start != null) {
+                items.add(offerItem(dialog, start,
+                        Strings.plural("names.piece.hideStart.one", "names.piece.hideStart.many", start.count())));
+            }
+        }
+        if (items.size() == 2) {
+            items.add(title(Strings.get(row.shortName.emptyFallback() ? "names.piece.nothingLeft" : "names.piece.nothing")));
+        }
         return items;
     }
 
-    /** "Hide piece N in every name", counted as the Keep pieces rule sees the name; null when it cannot. */
-    private static MenuItem hidePieceItem(NameRulesDialog dialog, String full, int fullIndex) {
-        List<NameRule> rules = dialog.workingRules();
-        NameRuleSet set = dialog.workingSet();
-        int at = rules.size();
-        String sep = "_";
-        for (int i = 0; i < rules.size(); i++) {
-            if (rules.get(i) instanceof KeepPiecesRule k && !k.separator().isEmpty()) {
-                at = i;
-                sep = k.separator();
-                break;
-            }
+    /** One offer as a menu item, its label carrying any warning. */
+    private static MenuItem offerItem(NameRulesDialog dialog, PieceOffers.Offer offer, String label) {
+        StringBuilder sb = new StringBuilder(label);
+        if (offer.cutsInto() > 0) {
+            sb.append(' ').append(Strings.plural("names.piece.cuts.one", "names.piece.cuts.many", offer.cutsInto()));
         }
-        Mapped in = set.applyBefore(full, at);
-        int k = -1;
-        for (int j = 0; j < in.text().length(); j++) {
-            if (in.origin(j) == fullIndex) {
-                k = j;
-                break;
-            }
+        if (offer.newlyShared() > 0) {
+            sb.append(' ').append(Strings.plural("names.piece.shared.one", "names.piece.shared.many", offer.newlyShared()));
         }
-        if (k < 0) {
-            return null;
-        }
-        List<int[]> ranges = KeepPiecesRule.split(in.text(), sep);
-        int piece = -1;
-        for (int p = 0; p < ranges.size(); p++) {
-            if (k >= ranges.get(p)[0] && k < ranges.get(p)[1]) {
-                piece = p;
-                break;
-            }
-        }
-        if (piece < 0 || ranges.size() < 2) {
-            return null;
-        }
-        int number = piece;
-        int ruleAt = at;
-        int n = ranges.size();
-        String separator = sep;
-        MenuItem item = item(Strings.format("names.piece.hideNumber", number + 1));
+        MenuItem item = item(sb.toString());
         item.setOnAction(e -> {
-            if (ruleAt < dialog.workingRules().size()) {
-                dialog.hidePieceOf(ruleAt, number);
+            if (offer.insert()) {
+                dialog.insertRule(offer.at(), offer.rule());
             } else {
-                java.util.SortedSet<Integer> kept = new java.util.TreeSet<>();
-                for (int i = 0; i < n; i++) {
-                    if (i != number) {
-                        kept.add(i);
-                    }
-                }
-                boolean last = number != n - 1;
-                dialog.insertRule(ruleAt, new KeepPiecesRule(separator, kept, n, last, last, true));
+                dialog.replaceRule(offer.at(), offer.rule());
+                dialog.selectRule(offer.at());
             }
         });
         return item;

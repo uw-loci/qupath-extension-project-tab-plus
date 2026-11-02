@@ -16,6 +16,8 @@ import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -25,6 +27,7 @@ import javafx.util.StringConverter;
 import qupath.ext.projecttabplus.model.names.HideExtensionRule;
 import qupath.ext.projecttabplus.model.names.HideTextRule;
 import qupath.ext.projecttabplus.model.names.KeepPiecesRule;
+import qupath.ext.projecttabplus.model.names.KeptRule;
 import qupath.ext.projecttabplus.model.names.Mapped;
 import qupath.ext.projecttabplus.model.names.NamePreview;
 import qupath.ext.projecttabplus.model.names.NameRule;
@@ -78,6 +81,7 @@ final class NameRuleEditors {
             case HideTextRule t -> new TextEditor(host, index);
             case HideExtensionRule e -> new ExtensionEditor(host, index);
             case KeepPiecesRule k -> new PiecesEditor(host, index);
+            case KeptRule k -> new KeptEditor(host, index);
         };
     }
 
@@ -250,7 +254,7 @@ final class NameRuleEditors {
             HBox row = new HBox(6, label, field, suggest);
             row.setAlignment(Pos.CENTER_LEFT);
             show.setOnAction(e -> host.showFilter(NameRulesDialog.Filter.SKIPPED));
-            box.getChildren().addAll(row, new HBox(4, result, show), example);
+            box.getChildren().addAll(row, new VBox(0, result, show), example);
             loading = true;
             field.setText(((PrefixRule) rule()).prefix());
             loading = false;
@@ -282,7 +286,7 @@ final class NameRuleEditors {
                 result.setText(Strings.format("names.prefix.all", total));
                 warn(result, false);
             } else {
-                result.setText(Strings.format("names.prefix.most", n, total, total - n));
+                result.setText(Strings.plural("names.prefix.most.one", "names.prefix.most.many", total - n, n, total));
                 warn(result, false);
                 show.setText(Strings.plural("names.show.otherStart.one", "names.show.otherStart.many", total - n));
                 link = true;
@@ -315,7 +319,7 @@ final class NameRuleEditors {
             HBox row = new HBox(6, label, field, ignoreCase);
             row.setAlignment(Pos.CENTER_LEFT);
             show.setOnAction(e -> host.showFilter(NameRulesDialog.Filter.SKIPPED));
-            box.getChildren().addAll(row, wrapped(Strings.get("names.text.help")), new HBox(4, result, show), example);
+            box.getChildren().addAll(row, wrapped(Strings.get("names.text.help")), new VBox(0, result, show), example);
             HideTextRule r = (HideTextRule) rule();
             loading = true;
             field.setText(r.text());
@@ -382,7 +386,7 @@ final class NameRuleEditors {
             addLeftover.setTooltip(Tooltips.of(Strings.get("names.ext.addLeftover.tooltip")));
             leftoverBox.setVisible(false);
             leftoverBox.setManaged(false);
-            box.getChildren().addAll(dbl, new HBox(4, result, show), example, leftoverBox,
+            box.getChildren().addAll(dbl, new VBox(0, result, show), example, leftoverBox,
                     wrapped(Strings.get("names.ext.help")));
             loading = true;
             dbl.setSelected(((HideExtensionRule) rule()).doubleExtension());
@@ -392,6 +396,10 @@ final class NameRuleEditors {
                     host.replaceRule(index, new HideExtensionRule(n, rule().on()));
                 }
             });
+        }
+
+        CheckBox doubleBox() {
+            return dbl;
         }
 
         @Override
@@ -487,6 +495,17 @@ final class NameRuleEditors {
             separator.setTooltip(Tooltips.of(Strings.get("names.pieces.separator.tooltip")));
             separator.setPrefWidth(150);
             separator.getEditor().setOnAction(e -> e.consume());
+            // Enter keeps the typed separator and stays here, as in the other fields; it must not
+            // reach the window's Apply button.
+            separator.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                if (e.getCode() == KeyCode.ENTER) {
+                    if (separator.isShowing()) {
+                        separator.hide();
+                    }
+                    separator.commitValue();
+                    e.consume();
+                }
+            });
             HBox sepRow = new HBox(6, sepLabel, separator);
             sepRow.setAlignment(Pos.CENTER_LEFT);
             Label sampleHint = new Label(Strings.get("names.pieces.sampleHint"));
@@ -504,9 +523,9 @@ final class NameRuleEditors {
                 host.replaceRule(index, new KeepPiecesRule(k.separator(), k.kept(), k.pieces(), lastChip.isSelected(),
                         k.keepLater(), k.on()));
             });
-            box.getChildren().addAll(sepRow, sampleRow, wrapped(Strings.get("names.pieces.pick")), chips, notAll,
-                    problem, new VBox(0, fewer, show), range, wrapped(Strings.get("names.pieces.order")), varies,
-                    example);
+            // Warnings first, so they show without scrolling at the default window size.
+            box.getChildren().addAll(problem, varies, sepRow, sampleRow, wrapped(Strings.get("names.pieces.pick")), chips,
+                    notAll, new VBox(0, fewer, show), range, wrapped(Strings.get("names.pieces.order")), example);
             loading = true;
             separator.setValue(((KeepPiecesRule) rule()).separator());
             loading = false;
@@ -693,11 +712,35 @@ final class NameRuleEditors {
                     kept.contains(k.pieces() - 1), k.on()));
         }
 
+        ComboBox<String> separatorBox() {
+            return separator;
+        }
+
         /** Untick one chip, as the table's piece menu asks. */
         void hidePiece(int piece) {
             if (piece >= 0 && piece < chipButtons.size()) {
                 chipToggled(piece, false);
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ kept rule
+
+    /** A rule this build cannot read: what it is and what can be done with it, nothing to edit. */
+    static final class KeptEditor extends Editor {
+
+        KeptEditor(Host host, int index) {
+            super(host, index, "names.kept.title");
+            KeptRule k = (KeptRule) rule();
+            box.getChildren().addAll(
+                    wrapped(Strings.get(k.newer() ? "names.kept.newer" : "names.kept.unreadable")),
+                    wrapped(Strings.format("names.kept.kind", k.label())),
+                    wrapped(Strings.get("names.kept.help")));
+        }
+
+        @Override
+        void update(NamePreview p) {
+            // Nothing to redraw: the rule changes no name here.
         }
     }
 
@@ -718,7 +761,7 @@ final class NameRuleEditors {
             title.setStyle("-fx-font-weight: bold;");
             box.getChildren().addAll(title, wrapped(Strings.get("names.card.intro")));
             if (suggestions.isEmpty()) {
-                box.getChildren().add(wrapped(Strings.get("names.card.none")));
+                box.getChildren().add(wrapped(Strings.get(showBack ? "names.card.covered" : "names.card.none")));
             } else {
                 box.getChildren().add(wrapped(Strings.format("names.card.suggestions", total)));
                 VBox rows = new VBox(4);
@@ -726,7 +769,8 @@ final class NameRuleEditors {
                     CheckBox cb = new CheckBox(text(s));
                     cb.setMnemonicParsing(false);
                     cb.setSelected(true);
-                    cb.setTooltip(Tooltips.of(Strings.get("names.suggestion.tooltip")));
+                    cb.setTooltip(Tooltips.of(Strings.get(s.kind() == Suggestions.Kind.LEFTOVER
+                            ? "names.suggestion.leftover.tooltip" : "names.suggestion.tooltip")));
                     cb.setMaxWidth(Double.MAX_VALUE);
                     cb.setMinWidth(0);
                     // A leftover's example can be long; wrap rather than cut it.

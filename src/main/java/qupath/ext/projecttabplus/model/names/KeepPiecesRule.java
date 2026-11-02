@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Keep only chosen pieces of a name split at a separator. Pieces are numbered from 0 here
@@ -24,10 +26,36 @@ public record KeepPiecesRule(String separator, SortedSet<Integer> kept, int piec
 
     public static final String KIND = "keepPieces";
 
+    /** Most piece chips a rule holds: no real name has more pieces, and each is a button. */
+    public static final int MAX_PIECES = 64;
+
+    private static final Logger logger = LoggerFactory.getLogger(KeepPiecesRule.class);
+
     public KeepPiecesRule {
         separator = separator == null ? "" : separator;
-        kept = Collections.unmodifiableSortedSet(new TreeSet<>(kept == null ? Set.of() : kept));
-        pieces = Math.max(0, pieces);
+        TreeSet<Integer> k = new TreeSet<>(kept == null ? Set.of() : kept);
+        if (pieces > MAX_PIECES || !k.isEmpty() && k.last() >= MAX_PIECES) {
+            logger.debug("Keep pieces: {} pieces clamped to {}", pieces, MAX_PIECES);
+            k.removeIf(i -> i >= MAX_PIECES);
+        }
+        kept = Collections.unmodifiableSortedSet(k);
+        pieces = Math.max(0, Math.min(MAX_PIECES, pieces));
+    }
+
+    /**
+     * @param piece a piece index, 0-based
+     * @return a copy that hides that piece in every name, as the table's piece menu asks
+     */
+    public KeepPiecesRule withPieceHidden(int piece) {
+        SortedSet<Integer> k = new TreeSet<>(kept);
+        int n = Math.max(pieces, piece + 1);
+        if (keepLater) {
+            for (int i = pieces; i < n; i++) {
+                k.add(i);
+            }
+        }
+        k.remove(piece);
+        return new KeepPiecesRule(separator, k, n, keepLast, k.contains(n - 1), on);
     }
 
     @Override

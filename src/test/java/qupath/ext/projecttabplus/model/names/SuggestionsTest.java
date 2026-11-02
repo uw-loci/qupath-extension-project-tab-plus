@@ -111,4 +111,28 @@ class SuggestionsTest {
     void nothingStandsOut() {
         assertTrue(Suggestions.suggest(List.of("alpha", "beta", "gamma")).isEmpty());
     }
+
+    @Test
+    void aSmallProjectGetsTheStartOfAllButOneName() {
+        // The grad tester's 4-name project: 3 share a start, which 80 percent would not allow.
+        List<String> names = List.of("MetroHealth_FNA_PDAC_6_20x_1_2.ome.tif", "MetroHealth_FNA_PDAC_6_20x_3_4.ome.tif",
+                "MetroHealth_FNA_PDAC_6_20x_5_6.ome.tif", "control_slide_A.tif");
+        List<Suggestion> s = Suggestions.suggest(names);
+        assertEquals(new Suggestions.Prefix("MetroHealth_FNA_PDAC_6_20x_", 3, 4), Suggestions.prefix(names));
+        assertEquals(Kind.PREFIX, s.get(0).kind());
+        assertTrue(s.stream().noneMatch(x -> x.kind() == Kind.TEXT), s.toString());
+        // Three names keep the 80 percent bar: 2 of 3 is not enough.
+        assertNull(Suggestions.prefix(List.of("Ab_cd_1", "Ab_cd_2", "zz")));
+    }
+
+    @Test
+    void repeatedTextNeedsThreeNames() {
+        // Without a shared start, "_HE" in 2 of 3 names is above 50 percent but only 2 names.
+        List<String> two = List.of("a_HE_1", "b_HE_2", "c_x_3");
+        assertTrue(Suggestions.suggest(two).stream().noneMatch(x -> x.kind() == Kind.TEXT));
+        List<String> three = List.of("a_HE_1", "b_HE_2", "c_HE_3", "d_x_4");
+        List<Suggestion> s = Suggestions.suggest(three).stream().filter(x -> x.kind() == Kind.TEXT).toList();
+        assertEquals(1, s.size());
+        assertEquals("_HE", s.get(0).detail());
+    }
 }
