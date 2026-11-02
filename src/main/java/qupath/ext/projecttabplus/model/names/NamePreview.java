@@ -73,7 +73,7 @@ public final class NamePreview {
                     if (HideExtensionRule.extensionStart(s, e.doubleExtension()) >= 0) {
                         continue;
                     }
-                    String l = HideExtensionRule.leftoverExtension(s);
+                    String l = HideExtensionRule.leftoverExtension(s, e.doubleExtension());
                     if (l != null) {
                         found.merge(l, 1, Integer::sum);
                         example.putIfAbsent(l, names.get(i));

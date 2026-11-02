@@ -10,15 +10,24 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Rules proposed from a project's names: the shared start, text repeated in most names (such
- * as {@code _20x}), the file extension, and an extension left before a note (as in
- * {@code .svs (rotated 270)}). Pure; the names passed in are the names as the current rules
+ * Rules proposed from a project's names: the shared start, text repeated in at least half the
+ * names (such as {@code _20x}), the file extension, and an extension left before QuPath's notes
+ * (as in {@code .svs (rotated 270)} or {@code .ome.tif (1)}). Pure; the names passed in are the names as the current rules
  * leave them.
  */
 public final class Suggestions {
 
-    /** Share of names a "most names" prefix or a repeated text must reach. */
+    /**
+     * Share of names a "most names" prefix must reach. High, because a wrong prefix hides the
+     * patient number of the commonest patient.
+     */
     public static final double MIN_SHARE = 0.8;
+
+    /**
+     * Share of names a repeated text must reach. Lower than {@link #MIN_SHARE}: a suggestion is
+     * an opt-in tick, and one more slide image without the text must not drop it.
+     */
+    public static final double TEXT_SHARE = 0.5;
 
     /** Shortest prefix worth proposing. */
     public static final int MIN_PREFIX = 3;
@@ -108,10 +117,10 @@ public final class Suggestions {
         Map<String, Integer> leftovers = new HashMap<>();
         Map<String, String> examples = new HashMap<>();
         for (String n : names) {
-            String left = HideExtensionRule.leftoverExtension(n);
+            String left = HideExtensionRule.leftoverExtension(n, true);
             if (left != null) {
                 leftovers.merge(left, 1, Integer::sum);
-                examples.putIfAbsent(left, n.substring(n.lastIndexOf(left)));
+                examples.putIfAbsent(left, n.substring(HideExtensionRule.leftoverStart(n, true)));
             }
         }
         leftovers.entrySet().stream()
@@ -188,7 +197,8 @@ public final class Suggestions {
 
     /**
      * Pieces split at {@code _} and space, with the separator in front, that contain a letter,
-     * sit outside the prefix and extension, and appear in at least {@link #MIN_SHARE} of names.
+     * sit outside the prefix, the extension and any QuPath notes after it, and appear in at least
+     * {@link #TEXT_SHARE} of names.
      */
     private static List<Suggestion> repeatedText(List<String> names, String prefix) {
         int total = names.size();
@@ -199,6 +209,9 @@ public final class Suggestions {
                 s = s.substring(prefix.length());
             }
             int ext = HideExtensionRule.extensionStart(s, true);
+            if (ext < 0) {
+                ext = HideExtensionRule.leftoverStart(s, true);
+            }
             if (ext >= 0) {
                 s = s.substring(0, ext);
             }
@@ -224,7 +237,7 @@ public final class Suggestions {
                 counts.merge(t, 1, Integer::sum);
             }
         }
-        int need = (int) Math.ceil(MIN_SHARE * total);
+        int need = (int) Math.ceil(TEXT_SHARE * total);
         List<Suggestion> out = new ArrayList<>();
         counts.entrySet().stream()
                 .filter(e -> e.getValue() >= need && e.getValue() >= 2)

@@ -90,27 +90,45 @@ public record HideExtensionRule(boolean doubleExtension, boolean on) implements 
     }
 
     /**
-     * The extension left behind when text follows it, as in {@code name.svs (rotated 270)}:
-     * the text after the last period is not an extension, but its first word is, followed by
-     * a space.
+     * Where the extension left before QuPath-style notes starts, as in {@code name.svs (rotated 270)},
+     * {@code name.svs (rotated 270) (Camera View)} or the duplicate suffix {@code name.ome.tif (1)}:
+     * one or more trailing {@code " (...)"} notes, and before them an extension this rule would
+     * hide if the name ended there.
      *
      * @param s a name
-     * @return the leftover with its period, such as {@code .svs}, or null
+     * @param dbl whether a double extension counts
+     * @return the index of the extension's period, or -1
      */
-    public static String leftoverExtension(String s) {
-        int dot = s.lastIndexOf('.');
-        if (dot <= 0) {
+    public static int leftoverStart(String s, boolean dbl) {
+        if (extensionStart(s, dbl) >= 0) {
+            return -1;
+        }
+        String rest = s;
+        boolean note = false;
+        while (rest.endsWith(")")) {
+            int open = rest.lastIndexOf(" (");
+            if (open <= 0) {
+                break;
+            }
+            rest = rest.substring(0, open);
+            note = true;
+        }
+        return note ? extensionStart(rest, dbl) : -1;
+    }
+
+    /**
+     * The extension left behind when QuPath notes follow it; see {@link #leftoverStart}.
+     *
+     * @param s a name
+     * @param dbl whether a double extension counts
+     * @return the leftover with its period, such as {@code .svs} or {@code .ome.tif}, or null
+     */
+    public static String leftoverExtension(String s, boolean dbl) {
+        int start = leftoverStart(s, dbl);
+        if (start < 0) {
             return null;
         }
-        String tail = s.substring(dot + 1);
-        if (isExtensionToken(tail)) {
-            return null;
-        }
-        int space = tail.indexOf(' ');
-        if (space <= 0) {
-            return null;
-        }
-        String word = tail.substring(0, space);
-        return isExtensionToken(word) ? "." + word : null;
+        int end = s.indexOf(" (", start);
+        return s.substring(start, end);
     }
 }

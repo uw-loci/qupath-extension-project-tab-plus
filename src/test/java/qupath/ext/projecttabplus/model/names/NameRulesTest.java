@@ -118,11 +118,18 @@ class NameRulesTest {
     }
 
     @Test
-    void leftoverExtensionIsFoundBeforeANote() {
-        assertEquals(".svs", HideExtensionRule.leftoverExtension(SVS_ROTATED));
-        assertNull(HideExtensionRule.leftoverExtension(SVS));
-        assertNull(HideExtensionRule.leftoverExtension("slide_7.0 copy"));
-        assertNull(HideExtensionRule.leftoverExtension("no period here"));
+    void leftoverExtensionIsFoundBeforeQuPathNotes() {
+        assertEquals(".svs", HideExtensionRule.leftoverExtension(SVS_ROTATED, true));
+        assertEquals(".svs", HideExtensionRule.leftoverExtension("a.svs (rotated 270) (Camera View)", true));
+        assertEquals(".ome.tif", HideExtensionRule.leftoverExtension("a_002.ome.tif (1)", true));
+        assertEquals(".tif", HideExtensionRule.leftoverExtension("a_002.ome.tif (1)", false));
+        assertEquals(".qptiff", HideExtensionRule.leftoverExtension("core.qptiff (v1.2)", true));
+        assertEquals(14, HideExtensionRule.leftoverStart("MetroHealth_x1.svs (rotated 270)", true));
+        assertNull(HideExtensionRule.leftoverExtension(SVS, true));
+        assertNull(HideExtensionRule.leftoverExtension("slide_7.0 (1)", true));
+        assertNull(HideExtensionRule.leftoverExtension("a.svs copy", true));
+        assertNull(HideExtensionRule.leftoverExtension("(1)", true));
+        assertNull(HideExtensionRule.leftoverExtension("no period here", true));
     }
 
     @Test

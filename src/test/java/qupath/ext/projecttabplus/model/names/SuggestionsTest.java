@@ -38,18 +38,21 @@ class SuggestionsTest {
         assertEquals(UserNames.SVS_TEXT, left.rule());
         assertEquals(1, left.reach());
         assertEquals(".svs (rotated 270)", left.example());
-        // _20x is in 3 of 5 names, under the 80 percent bar.
-        assertTrue(s.stream().noneMatch(x -> x.kind() == Kind.TEXT));
-    }
-
-    @Test
-    void repeatedTextAtEightyPercent() {
-        List<Suggestion> s = Suggestions.suggest(tenNames(8));
+        // _20x is in 3 of 5 names, over the 50 percent bar; biref (1 of 5) is not.
         List<Suggestion> text = s.stream().filter(x -> x.kind() == Kind.TEXT).toList();
         assertEquals(1, text.size());
         assertEquals(UserNames.TWENTY_X, text.get(0).rule());
-        assertEquals(8, text.get(0).reach());
-        assertTrue(Suggestions.suggest(tenNames(7)).stream().noneMatch(x -> x.kind() == Kind.TEXT));
+        assertEquals(3, text.get(0).reach());
+    }
+
+    @Test
+    void repeatedTextAtFiftyPercent() {
+        List<Suggestion> s = Suggestions.suggest(tenNames(5));
+        List<Suggestion> text = s.stream().filter(x -> x.kind() == Kind.TEXT).toList();
+        assertEquals(1, text.size());
+        assertEquals(UserNames.TWENTY_X, text.get(0).rule());
+        assertEquals(5, text.get(0).reach());
+        assertTrue(Suggestions.suggest(tenNames(4)).stream().noneMatch(x -> x.kind() == Kind.TEXT));
     }
 
     @Test
