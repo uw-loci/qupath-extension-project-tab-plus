@@ -868,10 +868,10 @@ own shortcuts in the viewer.
 | Ctrl+J | jump to current image |
 | F5 | refresh |
 | Ctrl+Shift+N | in checkbox mode, check all shown |
-| Ctrl+Shift+D | in checkbox mode, clear every check |
+| Ctrl+Shift+X | in checkbox mode, clear every check |
 | Alt+C, Alt+L, Alt+A (Windows and Linux) | in checkbox mode, press **Check all shown**, **Clear**, open **Actions** (mnemonics) |
 
-On macOS the Ctrl shortcuts are Cmd shortcuts. Ctrl+J, F5, Ctrl+Shift+N and Ctrl+Shift+D are
+On macOS the Ctrl shortcuts are Cmd shortcuts. Ctrl+J, F5, Ctrl+Shift+N and Ctrl+Shift+X are
 named in their buttons' tooltips, with the Cmd form on macOS; Ctrl+F is listed only here.
 **Check all shown** uses Ctrl+Shift+N rather than Ctrl+Shift+A, which is QuPath's own
 **Create full image annotation**.

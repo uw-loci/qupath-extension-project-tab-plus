@@ -805,7 +805,8 @@ public final class ProjectTabPlusPane extends BorderPane {
             } else if (e.getCode() == KeyCode.F5) {
                 refreshManually();
                 e.consume();
-            } else if (e.getCode() == KeyCode.D && e.isShortcutDown() && e.isShiftDown() && checkboxMode.get()) {
+            } else if (e.getCode() == KeyCode.X && e.isShortcutDown() && e.isShiftDown() && checkboxMode.get()) {
+                // Not Ctrl+Shift+D: that is QuPath's Train object classifier, which the macOS menu bar takes first.
                 checkedIds.clear();
                 e.consume();
             } else if (e.getCode() == KeyCode.N && e.isShortcutDown() && e.isShiftDown() && checkboxMode.get()) {
