@@ -155,3 +155,9 @@
   -fx-border-color: -fx-focus-color;
   -fx-border-radius: 3;
 }
+
+/* Links in the rules window ("Show those 34"): Modena's #0096C9 is 3.1:1 on the window
+   background, under the 4.5:1 that normal text needs; these are 5.8:1 or better. */
+.ptp-name-rules .hyperlink {
+  -fx-text-fill: ladder(-fx-background, #6CC6EC 49%, #00668A 50%);
+}
