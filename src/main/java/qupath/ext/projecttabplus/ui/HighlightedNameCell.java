@@ -19,6 +19,7 @@ import qupath.ext.projecttabplus.model.names.HideExtensionRule;
 import qupath.ext.projecttabplus.model.names.HideTextRule;
 import qupath.ext.projecttabplus.model.names.KeepPiecesRule;
 import qupath.ext.projecttabplus.model.names.Mapped;
+import qupath.ext.projecttabplus.model.names.NamePieces;
 import qupath.ext.projecttabplus.model.names.NameRule;
 import qupath.ext.projecttabplus.model.names.NameRuleSet;
 import qupath.ext.projecttabplus.model.names.PrefixRule;
@@ -30,7 +31,7 @@ import qupath.ext.projecttabplus.model.names.ShortName;
  */
 final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, NameRulesDialog.PreviewRow> {
 
-    private static final String PIECE_SEPARATORS = "_ ";
+    private static final String PIECE_SEPARATORS = NamePieces.SEPARATORS;
 
     private final NameRulesDialog dialog;
     private final NameRunsBox runs = new NameRunsBox();
@@ -109,32 +110,6 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
         return -1;
     }
 
-    /**
-     * The pieces of a full name the menu offers: split at {@code _} and space, with the
-     * extension its own piece.
-     *
-     * @param full a full name
-     * @return each piece as {@code {start, end}}
-     */
-    static List<int[]> pieces(String full) {
-        List<int[]> out = new ArrayList<>();
-        int ext = HideExtensionRule.extensionStart(full, true);
-        int end = ext >= 0 ? ext : full.length();
-        int start = 0;
-        for (int i = 0; i <= end; i++) {
-            if (i == end || PIECE_SEPARATORS.indexOf(full.charAt(i)) >= 0) {
-                if (i > start) {
-                    out.add(new int[] {start, i});
-                }
-                start = i + 1;
-            }
-        }
-        if (ext >= 0) {
-            out.add(new int[] {ext, full.length()});
-        }
-        return out;
-    }
-
     /** @return the menu items for a click at one character of a row's full name */
     static List<MenuItem> itemsFor(NameRulesDialog dialog, NameRulesDialog.PreviewRow row, int index) {
         List<MenuItem> items = new ArrayList<>();
@@ -153,10 +128,10 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
             return items;
         }
         // A click on a separator takes the piece after it (or before it, at the end).
-        int[] piece = null;
-        int[] before = null;
-        for (int[] p : pieces(full)) {
-            if (index >= p[0] && index < p[1] || p[0] > index) {
+        NamePieces.Piece piece = null;
+        NamePieces.Piece before = null;
+        for (NamePieces.Piece p : NamePieces.of(full)) {
+            if (index >= p.start() && index < p.end() || p.start() > index) {
                 piece = p;
                 break;
             }
@@ -168,27 +143,27 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
         if (piece == null) {
             return items;
         }
-        String text = full.substring(piece[0], piece[1]);
+        String text = piece.text(full);
         items.add(title(Strings.format("names.piece.title", text, full)));
         items.add(new SeparatorMenuItem());
         List<String> names = new ArrayList<>();
         for (NameRulesDialog.PreviewRow r : dialog.rows()) {
             names.add(r.full);
         }
-        int ext = HideExtensionRule.extensionStart(full, true);
-        if (piece[0] == ext) {
+        if (piece.kind() == NamePieces.Kind.EXTENSION && piece.end() == full.length()) {
             MenuItem hideExt = item(Strings.get("names.piece.hideExt"));
             hideExt.setOnAction(e -> dialog.insertRule(dialog.workingRules().size(), new HideExtensionRule(true, true)));
             items.add(hideExt);
             return items;
         }
         // Hide this text anywhere, with the separator in front (or behind, for the first piece)
-        // so no doubled separator is left.
+        // so no doubled separator is left. An extension before a note keeps its own period.
         String hideText;
-        if (piece[0] > 0) {
-            hideText = full.substring(piece[0] - 1, piece[1]);
-        } else if (piece[1] < full.length() && PIECE_SEPARATORS.indexOf(full.charAt(piece[1])) >= 0) {
-            hideText = full.substring(0, piece[1] + 1);
+        if (piece.start() > 0 && PIECE_SEPARATORS.indexOf(full.charAt(piece.start() - 1)) >= 0) {
+            hideText = full.substring(piece.start() - 1, piece.end());
+        } else if (piece.start() == 0 && piece.end() < full.length()
+                && PIECE_SEPARATORS.indexOf(full.charAt(piece.end())) >= 0) {
+            hideText = full.substring(0, piece.end() + 1);
         } else {
             hideText = text;
         }
@@ -196,14 +171,19 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
         MenuItem hideAnywhere = item(Strings.plural("names.piece.hideText.one", "names.piece.hideText.many", textCount, hideText));
         hideAnywhere.setOnAction(e -> dialog.insertRule(dialog.workingRules().size(), new HideTextRule(hideText, false, true)));
         items.add(hideAnywhere);
+        if (piece.kind() != NamePieces.Kind.WORD) {
+            // A note or an extension before one is not a Keep pieces piece, and hiding the
+            // start through it would hide the whole name.
+            return items;
+        }
 
-        MenuItem hideNumber = hidePieceItem(dialog, full, piece[0]);
+        MenuItem hideNumber = hidePieceItem(dialog, full, piece.start());
         if (hideNumber != null) {
             items.add(hideNumber);
         }
 
-        int startEnd = piece[1] < full.length() && PIECE_SEPARATORS.indexOf(full.charAt(piece[1])) >= 0
-                ? piece[1] + 1 : piece[1];
+        int startEnd = piece.end() < full.length() && PIECE_SEPARATORS.indexOf(full.charAt(piece.end())) >= 0
+                ? piece.end() + 1 : piece.end();
         String prefix = full.substring(0, startEnd);
         int startCount = (int) names.stream().filter(n -> n.startsWith(prefix)).count();
         MenuItem hideStart = item(Strings.plural("names.piece.hideStart.one", "names.piece.hideStart.many", startCount));
@@ -294,10 +274,10 @@ final class HighlightedNameCell extends TableCell<NameRulesDialog.PreviewRow, Na
     /** Shift+F10 or the Menu key on a row: one submenu per piece of its name. */
     static void showKeyboardMenu(NameRulesDialog dialog, NameRulesDialog.PreviewRow row, Node anchor) {
         ContextMenu menu = new ContextMenu();
-        for (int[] p : pieces(row.full)) {
-            Menu sub = new Menu(Strings.format("names.piece.submenu", row.full.substring(p[0], p[1])));
+        for (NamePieces.Piece p : NamePieces.of(row.full)) {
+            Menu sub = new Menu(Strings.format("names.piece.submenu", p.text(row.full)));
             sub.setMnemonicParsing(false);
-            sub.getItems().setAll(itemsFor(dialog, row, p[0]));
+            sub.getItems().setAll(itemsFor(dialog, row, p.start()));
             menu.getItems().add(sub);
         }
         Bounds b = anchor.localToScreen(anchor.getBoundsInLocal());
