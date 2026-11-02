@@ -77,6 +77,21 @@ public final class NamePieces {
 
     /**
      * @param s a name
+     * @return where its trailing {@code " (...)"} notes start (the space before the first), or
+     *     its length when it has none
+     */
+    public static int notesStart(String s) {
+        int end = s.length();
+        int open = noteStart(s, end);
+        while (open > 0) {
+            end = open - 1;
+            open = noteStart(s, end);
+        }
+        return end;
+    }
+
+    /**
+     * @param s a name
      * @param end where the text to look at ends
      * @return the index of the {@code (} of a {@code " (...)"} note ending at {@code end}, or -1
      */

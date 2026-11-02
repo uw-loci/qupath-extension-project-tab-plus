@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
 
 class NamePiecesTest {
@@ -73,5 +75,51 @@ class NamePiecesTest {
                 }
             }
         }
+    }
+
+    @Test
+    void notesStartIsTheSpaceBeforeTheFirstTrailingNote() {
+        assertEquals(26, NamePieces.notesStart("MetroHealth_FNA_PDAC_1.svs (rotated 270) (Camera View)"));
+        assertEquals(5, NamePieces.notesStart("a_b.c (1)"));
+        assertEquals(9, NamePieces.notesStart("x(1)_y.ab"));
+        assertEquals(3, NamePieces.notesStart("(1)"));
+    }
+
+    @Test
+    void keepPiecesLeavesQuPathNotesOutOfThePieces() {
+        assertEquals(List.of("5", "32474", "025"),
+                splitTexts("5_32474_025 (1)", "_"));
+        assertEquals(List.of("1"), splitTexts("1 (rotated 270) (Camera View)", "_"));
+        assertEquals(List.of("1"), splitTexts("1 (rotated 270) (Camera View)", " "));
+    }
+
+    @Test
+    void hidingTheLastPieceKeepsTheDuplicateNote() {
+        KeepPiecesRule keepFirst = new KeepPiecesRule("_", new TreeSet<>(Set.of(0, 1)), 3, false, false, true);
+        NameRuleSet set = new NameRuleSet(true, List.of(keepFirst));
+        assertEquals("5_32474 (1)", set.apply("5_32474_025 (1)").display());
+        assertEquals("5_32474", set.apply("5_32474_025").display());
+        assertEquals("1 (rotated 270) (Camera View)", set.apply("1 (rotated 270) (Camera View)").display());
+    }
+
+    @Test
+    void notesDoNotMakeThePatientPieceLookMixed() {
+        List<String> names = new ArrayList<>();
+        names.add("1");
+        names.add("1 (rotated 270) (Camera View)");
+        names.add("1_38323_35919_7.0_002");
+        names.add("1_38323_35919_7.0_biref_002 (1)");
+        KeepPiecesRule keep = new KeepPiecesRule("_", new TreeSet<>(Set.of(0, 1, 2, 3, 4, 5)), 6, true, true, true);
+        NamePreview p = NamePreview.compute(new NameRuleSet(true, List.of(keep)), names, 0);
+        assertEquals(false, p.varies(0));
+        assertEquals(true, p.varies(4));
+    }
+
+    private static List<String> splitTexts(String s, String sep) {
+        List<String> out = new ArrayList<>();
+        for (int[] r : KeepPiecesRule.split(s, sep)) {
+            out.add(s.substring(r[0], r[1]));
+        }
+        return out;
     }
 }

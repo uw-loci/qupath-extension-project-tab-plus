@@ -9,7 +9,7 @@ import java.util.TreeSet;
 
 /**
  * Keep only chosen pieces of a name split at a separator. Pieces are numbered from 0 here
- * and from 1 in the dialog. A name with fewer pieces keeps the chosen pieces it has; a name
+ * and from 1 in the dialog; trailing QuPath notes are not pieces and always stay. A name with fewer pieces keeps the chosen pieces it has; a name
  * with none of them is left as it is and flagged.
  *
  * @param separator the literal separator, one or more characters
@@ -46,20 +46,25 @@ public record KeepPiecesRule(String separator, SortedSet<Integer> kept, int piec
     }
 
     /**
+     * Split a name into pieces. Trailing QuPath notes such as {@code " (1)"} or
+     * {@code " (rotated 270)"} are not pieces: they are always kept, so a duplicate keeps the
+     * note that tells it apart.
+     *
      * @param s a name
      * @param sep a non-empty separator
      * @return each piece as {@code {start, end}}, empty pieces included
      */
     public static List<int[]> split(String s, String sep) {
         List<int[]> out = new ArrayList<>();
+        int stemEnd = NamePieces.notesStart(s);
         int start = 0;
         int i = s.indexOf(sep);
-        while (i >= 0) {
+        while (i >= 0 && i + sep.length() <= stemEnd) {
             out.add(new int[] {start, i});
             start = i + sep.length();
             i = s.indexOf(sep, start);
         }
-        out.add(new int[] {start, s.length()});
+        out.add(new int[] {start, stemEnd});
         return out;
     }
 
@@ -90,7 +95,8 @@ public record KeepPiecesRule(String separator, SortedSet<Integer> kept, int piec
             return in.withNoPiece();
         }
         boolean[] drop = new boolean[s.length()];
-        java.util.Arrays.fill(drop, true);
+        int stemEnd = ranges.get(n - 1)[1];
+        java.util.Arrays.fill(drop, 0, stemEnd, true);
         boolean first = true;
         for (int i = 0; i < n; i++) {
             if (!keep[i]) {
