@@ -150,6 +150,48 @@ public final class DisplayNameRulesScenario {
         }
         NameRulesJson.Parsed stored = NameRulesJson.parse(reloaded.getMetadata().get(ProjectTabPlusPane.NAME_RULES_KEY));
         HarnessSupport.check(stored.valid() && stored.rules().rules().size() == 4, "the project metadata key holds four rules");
+
+        // Shared short names are reported when the project opens, not only after Apply.
+        Project<BufferedImage> again = ProjectIO.loadProject(Path.of(args[0], "project.qpproj").toFile(), BufferedImage.class);
+        HarnessSupport.runFx(() -> qupath.setProject(again));
+        HarnessSupport.check(HarnessSupport.waitUntil(() -> HarnessSupport.onFx(pane::statusText)
+                .startsWith("1 short name is shared by 2 images"), 15000),
+                "on open the tab status warns about the shared name: " + HarnessSupport.onFx(pane::statusText));
+
+        // A rule from a newer Project+ survives this build: kept in place, version kept, through a toggle.
+        String newer = "{\"version\":2,\"enabled\":true,\"rules\":[{\"kind\":\"regexReplace\",\"pattern\":\"_x\"},"
+                + "{\"kind\":\"prefix\",\"text\":\"MetroHealth_FNA_PDAC_\"}]}";
+        again.getMetadata().put(ProjectTabPlusPane.NAME_RULES_KEY, newer);
+        again.syncChanges();
+        Project<BufferedImage> third = ProjectIO.loadProject(Path.of(args[0], "project.qpproj").toFile(), BufferedImage.class);
+        HarnessSupport.runFx(() -> qupath.setProject(third));
+        HarnessSupport.check(HarnessSupport.waitUntil(() -> shownNames(pane).contains("1_20x_38323_35919_-7.0_002.ome.tif"), 15000),
+                "the readable rule still applies: " + shownNames(pane));
+        HarnessSupport.check(HarnessSupport.waitUntil(() -> HarnessSupport.onFx(pane::statusText)
+                .contains("from a newer Project+"), 5000), "the tab says a rule is kept: " + HarnessSupport.onFx(pane::statusText));
+        HarnessSupport.runFx(() -> pane.showTruncatedNamesProperty().set(false));
+        HarnessSupport.check(HarnessSupport.waitUntil(() -> {
+            String f = readMetadataFile(args[0]);
+            return f.contains("\\\"enabled\\\":false") && f.contains("regexReplace") && f.contains("\\\"version\\\":2");
+        }, 10000), "a toggle writes the newer rule and version 2 back: " + readMetadataFile(args[0]));
+        HarnessSupport.runFx(() -> pane.showTruncatedNamesProperty().set(true));
+        HarnessSupport.runFx(pane::showNameRules);
+        Window kw = HarnessSupport.waitForWindow("Project+ - Name rules", 10000);
+        HarnessSupport.check(kw != null, "the window opens on the kept rule");
+        if (kw != null) {
+            HarnessSupport.check(HarnessSupport.waitUntil(() -> labelTexts(kw).stream()
+                    .anyMatch(t -> t.startsWith("1. Rule from a newer version of Project+")), 5000),
+                    "the kept rule is listed as locked: " + labelTexts(kw));
+            HarnessSupport.check(labelTexts(kw).contains("Rule kept as is"), "its editor explains it");
+            // Esc from the rule list, where focus lands, closes an unchanged window.
+            HarnessSupport.runFx(() -> {
+                Node list = kw.getScene().getRoot().lookup(".list-view");
+                list.requestFocus();
+                javafx.event.Event.fireEvent(list, new javafx.scene.input.KeyEvent(javafx.scene.input.KeyEvent.KEY_PRESSED,
+                        "", "", javafx.scene.input.KeyCode.ESCAPE, false, false, false, false));
+            });
+            HarnessSupport.check(HarnessSupport.waitClosed(kw, 5000), "Esc in the rule list closes the window");
+        }
         HarnessSupport.finish();
     }
 
