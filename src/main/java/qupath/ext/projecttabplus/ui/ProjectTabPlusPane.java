@@ -229,6 +229,7 @@ public final class ProjectTabPlusPane extends BorderPane {
     private boolean updatingCombos;
     private boolean updatingProfileCombo;
     private DisplaySettingsDialog settingsDialog;
+    private NameRulesDialog nameRulesDialog;
     private final BulkCommands bulkCommands;
 
     // Display-name rules: the applied set and its flag. The toggle and the set stay in step through
@@ -446,12 +447,16 @@ public final class ProjectTabPlusPane extends BorderPane {
         MenuItem highlightColor = new MenuItem(Strings.get("context.highlightColor"));
         highlightColor.setOnAction(e -> HighlightColorDialog.show(qupath));
 
+        CheckMenuItem gearShortNames = showTruncatedItem();
+        MenuItem gearNameRules = nameRulesItem();
         gear.getItems().setAll(save, saveAs, rename, delete, manage, new SeparatorMenuItem(),
                 edit, thumbs, indicators, new SeparatorMenuItem(),
+                gearShortNames, gearNameRules, new SeparatorMenuItem(),
                 create, open, add, new SeparatorMenuItem(),
                 removeCurrent, jump, new SeparatorMenuItem(),
                 showBuiltIn, legend, highlightColor);
         gear.setOnShowing(e -> {
+            updateNameRuleItems(gearShortNames, gearNameRules);
             boolean isDefault = savedProfile == null || ProfileStore.DEFAULT_NAME.equals(savedProfile.getName());
             rename.setDisable(isDefault);
             delete.setDisable(isDefault);
@@ -734,6 +739,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         Action maskAction = new Action(Strings.get("context.maskNames"));
         maskAction.selectedProperty().bindBidirectional(PathPrefs.maskImageNamesProperty());
         CheckMenuItem mask = ActionUtils.createCheckMenuItem(maskAction);
+        CheckMenuItem shortNames = showTruncatedItem();
+        MenuItem nameRulesMenuItem = nameRulesItem();
         MenuItem groupBy = new MenuItem(Strings.get("context.groupBy"));
         groupBy.setOnAction(e -> showDisplaySettings());
         MenuItem highlightColor = new MenuItem(Strings.get("context.highlightColor"));
@@ -744,8 +751,8 @@ public final class ProjectTabPlusPane extends BorderPane {
         SeparatorMenuItem sep3 = new SeparatorMenuItem();
         SeparatorMenuItem sep4 = new SeparatorMenuItem();
         contextMenu.getItems().setAll(open, jump, sep1, remove, removeCurrent, duplicate, rename, addMetadata,
-                description, refreshThumb, sep2, check, uncheck, sep3, openDir, sep4, mask, groupBy,
-                highlightColor);
+                description, refreshThumb, sep2, check, uncheck, sep3, openDir, sep4, mask, shortNames,
+                nameRulesMenuItem, groupBy, highlightColor);
         contextMenu.setOnShowing(e -> {
             contextMenuShowing = true;
             List<ProjectImageEntry<BufferedImage>> entries = selectedEntries();
@@ -778,6 +785,7 @@ public final class ProjectTabPlusPane extends BorderPane {
             sep4.setVisible(any || isGroup);
             mask.setVisible(true);
             groupBy.setVisible(true);
+            updateNameRuleItems(shortNames, nameRulesMenuItem);
         });
         contextMenu.setOnHidden(e -> contextMenuShowing = false);
     }
@@ -1172,6 +1180,13 @@ public final class ProjectTabPlusPane extends BorderPane {
             settingsDialog.close();
         }
         collisionNotice = false;
+        if (nameRulesDialog != null) {
+            boolean dropped = nameRulesDialog.closeForProjectChange();
+            nameRulesDialog = null;
+            if (dropped) {
+                Platform.runLater(() -> setStickyStatus(Strings.get("status.nameRulesDropped")));
+            }
+        }
         loadNameRules(project);
         if (project != null) {
             String stored = project.getMetadata().get(PROJECT_PROFILE_KEY);
@@ -1438,6 +1453,9 @@ public final class ProjectTabPlusPane extends BorderPane {
         }
         if (settingsDialog != null) {
             settingsDialog.projectChanged();
+        }
+        if (nameRulesDialog != null) {
+            nameRulesDialog.entriesChanged();
         }
     }
 
@@ -2030,6 +2048,61 @@ public final class ProjectTabPlusPane extends BorderPane {
             settingsDialog = new DisplaySettingsDialog(this);
         }
         settingsDialog.show();
+    }
+
+    /** Open the name rules window, or bring it to the front. */
+    void showNameRules() {
+        if (qupath.getProject() == null || PathPrefs.maskImageNamesProperty().get()) {
+            return;
+        }
+        if (nameRulesDialog == null) {
+            nameRulesDialog = new NameRulesDialog(this);
+        }
+        nameRulesDialog.show();
+    }
+
+    /** Called by the name rules window when it closes. */
+    void nameRulesDialogClosed(NameRulesDialog dialog) {
+        if (nameRulesDialog == dialog) {
+            nameRulesDialog = null;
+        }
+    }
+
+    /** @return the open name rules window, or null; for the harness */
+    NameRulesDialog nameRulesDialog() {
+        return nameRulesDialog;
+    }
+
+    /**
+     * Set the Show truncated names item's label and state, and the Name rules item's, from the
+     * project, masking and rules: menu items cannot show a tooltip, so the reason is in the label.
+     */
+    private void updateNameRuleItems(CheckMenuItem toggle, MenuItem rulesItem) {
+        boolean noProject = qupath.getProject() == null;
+        boolean masked = PathPrefs.maskImageNamesProperty().get();
+        boolean noRules = !nameRules.get().anyOn();
+        String key = noProject ? "context.showTruncated.noProject"
+                : masked ? "context.showTruncated.masked"
+                : noRules ? "context.showTruncated.noRules"
+                : "context.showTruncated";
+        toggle.setText(Strings.get(key));
+        toggle.setDisable(noProject || masked || noRules);
+        rulesItem.setText(Strings.get(masked ? "context.nameRules.masked" : "context.nameRules"));
+        rulesItem.setDisable(noProject || masked);
+    }
+
+    private CheckMenuItem showTruncatedItem() {
+        CheckMenuItem item = new CheckMenuItem(Strings.get("context.showTruncated"));
+        item.setMnemonicParsing(false);
+        item.selectedProperty().bindBidirectional(showTruncatedNames);
+        return item;
+    }
+
+    private MenuItem nameRulesItem() {
+        MenuItem item = new MenuItem(Strings.get("context.nameRules"));
+        item.setMnemonicParsing(false);
+        item.setOnAction(e -> showNameRules());
+        return item;
     }
 
     /** Called by the settings dialog when it closes. */

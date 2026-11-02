@@ -56,7 +56,8 @@ public final class BulkCommands {
             return;
         }
         Map<String, List<QuPathViewer>> open = openViewers(project, entries);
-        Optional<Boolean> choice = BulkDialogs.confirmRemove(qupath.getStage(), entries, open.keySet());
+        Map<String, String> shortNames = pane.shortNamesById();
+        Optional<Boolean> choice = BulkDialogs.confirmRemove(qupath.getStage(), entries, open.keySet(), shortNames);
         if (choice.isEmpty()) {
             return;
         }
@@ -79,7 +80,7 @@ public final class BulkCommands {
                 pane.hideBusy();
                 qupath.refreshProject();
                 pane.refreshAfterChange();
-                report(Kind.REMOVE, outcome, null);
+                report(Kind.REMOVE, outcome, null, shortNames);
             });
         });
     }
@@ -98,7 +99,8 @@ public final class BulkCommands {
             }
         }
         Map<String, List<QuPathViewer>> open = openViewers(project, entries);
-        if (!BulkDialogs.confirmClear(qupath.getStage(), entries, open.keySet(), skipped)) {
+        Map<String, String> shortNames = pane.shortNamesById();
+        if (!BulkDialogs.confirmClear(qupath.getStage(), entries, open.keySet(), skipped, shortNames)) {
             return;
         }
         List<ImageData<BufferedImage>> closed = closeViewers(open);
@@ -116,7 +118,7 @@ public final class BulkCommands {
             Platform.runLater(() -> {
                 pane.hideBusy();
                 pane.refreshAfterChange();
-                report(Kind.CLEAR, outcome, null);
+                report(Kind.CLEAR, outcome, null, shortNames);
             });
         });
     }
@@ -166,6 +168,7 @@ public final class BulkCommands {
             live.put(e.getKey(), new ArrayList<>(e.getValue().getHierarchy().getAllObjects(false)));
         }
         pane.resetCancel();
+        Map<String, String> shortNames = pane.shortNamesById();
         pane.bulkExecutor().submit(() -> {
             Map<String, String> names = BulkJobs.plannedFileNames(entries, c.compress(), masked);
             int existing = BulkJobs.countExisting(c.folder(), names.values());
@@ -190,7 +193,7 @@ public final class BulkCommands {
                     pane.busyProgress("busy.exporting"), pane::isCancelRequested);
             Platform.runLater(() -> {
                 pane.hideBusy();
-                report(Kind.EXPORT, outcome, c.folder());
+                report(Kind.EXPORT, outcome, c.folder(), shortNames);
             });
         });
     }
@@ -266,7 +269,7 @@ public final class BulkCommands {
         }
     }
 
-    private void report(Kind kind, Outcome outcome, Path folder) {
+    private void report(Kind kind, Outcome outcome, Path folder, Map<String, String> shortNames) {
         String verb = switch (kind) {
             case REMOVE -> Strings.get("status.verb.removed");
             case CLEAR -> Strings.get("status.verb.cleared");
@@ -275,7 +278,7 @@ public final class BulkCommands {
         if (!outcome.failures().isEmpty()) {
             pane.setTransientStatus(Strings.format("status.bulkFailed", verb, outcome.done(), outcome.total(),
                     outcome.failures().size()), true);
-            BulkDialogs.showResult(qupath.getStage(), kind, outcome);
+            BulkDialogs.showResult(qupath.getStage(), kind, outcome, shortNames);
             return;
         }
         if (outcome.canceled()) {

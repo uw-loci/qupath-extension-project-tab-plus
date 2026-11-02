@@ -89,3 +89,72 @@
 .project-tab-plus .tree-cell:filled:selected .ptp-group-key {
   -fx-text-fill: -fx-text-background-color;
 }
+
+/* --- Name rules window. Its scene loads this sheet itself; the root carries
+   .project-tab-plus .ptp-name-rules. Hidden runs: the strike-through carries the meaning,
+   the warm tint supports it; never red, which here means nothing is wrong. */
+.ptp-name-rules .ptp-removed {
+  -fx-background-color: ladder(-fx-background, #54392B 49%, #FBE3D6 50%);
+  -fx-background-radius: 2;
+  -fx-text-fill: ladder(-fx-background, #FFD9C7 49%, #7A3B22 50%);
+}
+
+.ptp-name-rules .ptp-removed .text {
+  -fx-strikethrough: true;
+}
+
+/* On a selection bar: drop the tint and follow the bar's text color; the line stays. */
+.ptp-name-rules .table-row-cell:filled:selected .ptp-removed {
+  -fx-background-color: transparent;
+  -fx-text-fill: -fx-text-background-color;
+}
+
+.ptp-name-rules .ptp-warn-note {
+  -fx-text-fill: ladder(-fx-background, #FFB74D 49%, #9E4E00 50%);
+}
+
+.ptp-name-rules .table-row-cell:filled:selected .ptp-warn-note {
+  -fx-text-fill: -fx-text-background-color;
+}
+
+.ptp-name-rules .ptp-rule-off {
+  -fx-text-fill: ladder(-fx-background, #ADADAD 49%, #666666 50%);
+}
+
+.ptp-name-rules .list-cell:filled:selected .ptp-rule-off {
+  -fx-text-fill: -fx-text-background-color;
+}
+
+/* A hidden piece chip looks like a hidden run in the table. */
+.ptp-name-rules .ptp-piece-chip:selected {
+  -fx-font-weight: bold;
+}
+
+.ptp-name-rules .ptp-piece-chip:hover {
+  -fx-cursor: hand;
+}
+
+.ptp-name-rules .ptp-piece-chip:selected .text {
+  -fx-strikethrough: false;
+}
+
+.ptp-name-rules .ptp-piece-chip {
+  -fx-background-color: ladder(-fx-background, #54392B 49%, #FBE3D6 50%), -fx-focus-color, transparent;
+  -fx-background-insets: 0, 0, 1;
+  -fx-text-fill: ladder(-fx-background, #FFD9C7 49%, #7A3B22 50%);
+}
+
+.ptp-name-rules .ptp-piece-chip .text {
+  -fx-strikethrough: true;
+}
+
+.ptp-name-rules .ptp-piece-chip:selected {
+  -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+  -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+  -fx-text-fill: -fx-text-base-color;
+}
+
+.ptp-name-rules .ptp-piece-chip:focused {
+  -fx-border-color: -fx-focus-color;
+  -fx-border-width: 1;
+}

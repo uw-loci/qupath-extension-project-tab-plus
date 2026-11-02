@@ -4,7 +4,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javafx.geometry.Insets;
@@ -14,6 +16,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -51,11 +54,20 @@ final class BulkDialogs {
     private BulkDialogs() {
     }
 
-    /** D4. @return the saved-data-to-trash choice, or empty on cancel */
+    /** One line of a D4/D5 list: the text shown and the full name for its tooltip. */
+    record NameItem(String text, String fullName) {
+    }
+
+    /**
+     * D4.
+     *
+     * @param shortNames entry ID to short name, for entries whose short name differs; empty when off
+     * @return the saved-data-to-trash choice, or empty on cancel
+     */
     static Optional<Boolean> confirmRemove(Window owner, List<ProjectImageEntry<BufferedImage>> entries,
-                                           Set<String> openIds) {
+                                           Set<String> openIds, Map<String, String> shortNames) {
         int n = entries.size();
-        ListView<String> list = nameList(entries, openIds, Set.of());
+        ListView<NameItem> list = nameList(entries, openIds, Set.of(), shortNames);
         Label openNote = new Label(Strings.plural("d4.openNote.one", "d4.openNote.many", openIds.size()));
         openNote.setWrapText(true);
         openNote.setVisible(!openIds.isEmpty());
@@ -88,13 +100,18 @@ final class BulkDialogs {
         return Optional.of(data.isSelected());
     }
 
-    /** D5. @return true to clear */
+    /**
+     * D5.
+     *
+     * @param shortNames entry ID to short name, for entries whose short name differs; empty when off
+     * @return true to clear
+     */
     static boolean confirmClear(Window owner, List<ProjectImageEntry<BufferedImage>> entries,
-                                Set<String> openIds, Set<String> skippedIds) {
+                                Set<String> openIds, Set<String> skippedIds, Map<String, String> shortNames) {
         int n = entries.size();
         Label body = new Label(Strings.get("d5.body"));
         body.setWrapText(true);
-        ListView<String> list = nameList(entries, openIds, skippedIds);
+        ListView<NameItem> list = nameList(entries, openIds, skippedIds, shortNames);
         Label skipped = new Label(Strings.plural("d5.skippedNote.one", "d5.skippedNote.many", skippedIds.size()));
         skipped.setWrapText(true);
         skipped.setVisible(!skippedIds.isEmpty());
@@ -253,8 +270,12 @@ final class BulkDialogs {
         return Optional.of(r.get() == overwrite ? BulkJobs.OverwritePolicy.OVERWRITE : BulkJobs.OverwritePolicy.SKIP);
     }
 
-    /** D7: shown only when something failed. Non-modal. */
-    static void showResult(Window owner, Kind kind, BulkJobs.Outcome outcome) {
+    /**
+     * D7: shown only when something failed. Non-modal.
+     *
+     * @param shortNames entry ID to short name, taken before the job; a line with one names both
+     */
+    static void showResult(Window owner, Kind kind, BulkJobs.Outcome outcome, Map<String, String> shortNames) {
         String titleKey = switch (kind) {
             case REMOVE -> "d7.title.remove";
             case CLEAR -> "d7.title.clear";
@@ -267,7 +288,10 @@ final class BulkDialogs {
         };
         StringBuilder sb = new StringBuilder();
         for (BulkJobs.Failure f : outcome.failures()) {
-            sb.append(Strings.format("d7.failedLine", f.name(), f.reason())).append('\n');
+            String shortName = shortNames.get(f.entryId());
+            String name = shortName == null || shortName.equals(f.name())
+                    ? f.name() : Strings.format("d7.bothNames", shortName, f.name());
+            sb.append(Strings.format("d7.failedLine", name, f.reason())).append('\n');
         }
         TextArea failed = new TextArea(sb.toString().trim());
         failed.setEditable(false);
@@ -287,22 +311,50 @@ final class BulkDialogs {
                 .show();
     }
 
-    private static ListView<String> nameList(List<ProjectImageEntry<BufferedImage>> entries, Set<String> openIds,
-                                             Set<String> skippedIds) {
-        ListView<String> list = new ListView<>();
+    /**
+     * The D4/D5 list. Short names are shown while the rules are on, except that a short name
+     * shared by two or more listed images shows in full on those rows: two identical lines in a
+     * confirmation that removes or clears would not say which images are meant.
+     */
+    private static ListView<NameItem> nameList(List<ProjectImageEntry<BufferedImage>> entries, Set<String> openIds,
+                                               Set<String> skippedIds, Map<String, String> shortNames) {
+        Map<String, Integer> uses = new HashMap<>();
         for (ProjectImageEntry<BufferedImage> e : entries) {
-            String text = e.getImageName();
+            uses.merge(shownName(e, shortNames), 1, Integer::sum);
+        }
+        ListView<NameItem> list = new ListView<>();
+        for (ProjectImageEntry<BufferedImage> e : entries) {
+            String shown = shownName(e, shortNames);
+            String text = uses.get(shown) > 1 ? e.getImageName() : shown;
             if (skippedIds.contains(e.getID())) {
                 text += "    " + Strings.get("d5.skippedMark");
             } else if (openIds.contains(e.getID())) {
                 text += "    " + Strings.get("d4.openMark");
             }
-            list.getItems().add(text);
+            list.getItems().add(new NameItem(text, e.getImageName()));
         }
+        list.setCellFactory(lv -> new ListCell<>() {
+            {
+                setMnemonicParsing(false);
+            }
+
+            @Override
+            protected void updateItem(NameItem item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.text());
+                setTooltip(empty || item == null ? null : Tooltips.of(item.fullName()));
+            }
+        });
         list.setPrefHeight(24.0 * Math.min(LIST_ROWS, Math.max(2, entries.size())) + 4);
         list.setPadding(Insets.EMPTY);
-        list.setTooltip(Tooltips.of(Strings.get("d4.list.tooltip")));
+        list.setTooltip(Tooltips.of(shortNames.isEmpty() ? Strings.get("d4.list.tooltip")
+                : Strings.get("d4.list.tooltip") + " " + Strings.get("d4.list.tooltip.shortNames")));
         return list;
+    }
+
+    private static String shownName(ProjectImageEntry<BufferedImage> e, Map<String, String> shortNames) {
+        String s = shortNames.get(e.getID());
+        return s == null ? e.getImageName() : s;
     }
 
     private static Label wrapped(String text) {
