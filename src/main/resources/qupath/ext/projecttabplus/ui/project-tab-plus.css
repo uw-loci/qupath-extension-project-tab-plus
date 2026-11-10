@@ -113,7 +113,8 @@
   -fx-text-fill: ladder(-fx-background, #FFB74D 49%, #9E4E00 50%);
 }
 
-.ptp-name-rules .table-row-cell:filled:selected .ptp-warn-note {
+.ptp-name-rules .table-row-cell:filled:selected .ptp-warn-note,
+.ptp-name-rules .list-cell:filled:selected .ptp-warn-note {
   -fx-text-fill: -fx-text-background-color;
 }
 

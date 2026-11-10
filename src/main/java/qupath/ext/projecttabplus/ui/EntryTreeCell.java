@@ -195,6 +195,8 @@ final class EntryTreeCell extends TreeCell<Row> {
         }
         setGraphic(groupBox);
         tooltip.setGraphic(null);
+        tooltip.setWrapText(true);
+        tooltip.setMaxWidth(Tooltips.MAX_WIDTH);
         String groupTip = group.key() == null ? group.value() : group.key().displayName() + ": " + group.value();
         if (group.key() != null && group.key().builtin() == GroupingKey.Builtin.IMAGE_NAME && pane.shortNamesActive()) {
             groupTip += "\n" + Strings.get("row.tooltip.shortGroup");
@@ -271,6 +273,10 @@ final class EntryTreeCell extends TreeCell<Row> {
         setGraphic(imageBox);
 
         tooltip.setText(tooltipText(row, presence, current));
+        // One line per summary line, as in QuPath's own Project tab: wrapped beside the thumbnail,
+        // the full name broke mid-word, and a partly wrapped text is cut short at the bottom.
+        tooltip.setWrapText(false);
+        tooltip.setMaxWidth(Region.USE_COMPUTED_SIZE);
         tooltipImage.setImage(thumb);
         tooltip.setGraphic(thumb == null ? null : tooltipImage);
         setTooltip(pane.isContextMenuShowing() ? null : tooltip);

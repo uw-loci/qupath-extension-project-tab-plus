@@ -9,12 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogEvent;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -54,6 +58,10 @@ final class BulkDialogs {
 
     private static final int LIST_ROWS = 8;
 
+    /** Content width of D4 and D5, and of D6 and D7, in px. */
+    private static final double CONFIRM_WIDTH = 440;
+    private static final double OPTIONS_WIDTH = 460;
+
     private BulkDialogs() {
     }
 
@@ -72,18 +80,15 @@ final class BulkDialogs {
                                            Set<String> openIds, Map<String, String> shortNames, Set<String> shared) {
         int n = entries.size();
         ListView<NameItem> list = nameList(entries, openIds, Set.of(), shortNames, shared);
-        Label openNote = new Label(Strings.plural("d4.openNote.one", "d4.openNote.many", openIds.size()));
-        openNote.setWrapText(true);
+        Label openNote = wrapped(Strings.plural("d4.openNote.one", "d4.openNote.many", openIds.size()), CONFIRM_WIDTH);
         openNote.setVisible(!openIds.isEmpty());
         openNote.setManaged(!openIds.isEmpty());
         CheckBox data = new CheckBox(Strings.get("d4.dataCheckbox"));
         data.setSelected(false);
-        data.setWrapText(true);
+        fitWidth(data, CONFIRM_WIDTH);
         data.setTooltip(Tooltips.of(Strings.get("d4.dataCheckbox.tooltip")));
-        Label files = new Label(Strings.get("d4.filesNote"));
-        files.setWrapText(true);
-        VBox box = new VBox(8, list, fullNote(list), openNote, data, files);
-        box.setPrefWidth(440);
+        Label files = wrapped(Strings.get("d4.filesNote"), CONFIRM_WIDTH);
+        VBox box = contentBox(8, CONFIRM_WIDTH, list, fullNote(list), openNote, data, files);
         ButtonType remove = new ButtonType(Strings.plural("d4.remove.one", "d4.remove.many", n), ButtonData.OK_DONE);
         ButtonType cancel = new ButtonType(Strings.get("d4.cancel"), ButtonData.CANCEL_CLOSE);
         Dialog<ButtonType> dialog = Dialogs.builder()
@@ -97,6 +102,7 @@ final class BulkDialogs {
                 .build();
         DialogButtons.setDefault(dialog, cancel);
         DialogButtons.installTooltip(dialog, remove, Strings.get("d4.remove.tooltip"));
+        fitOnShown(dialog);
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() != remove) {
             return Optional.empty();
@@ -115,21 +121,17 @@ final class BulkDialogs {
                                 Set<String> openIds, Set<String> skippedIds, Map<String, String> shortNames,
                                 Set<String> shared) {
         int n = entries.size();
-        Label body = new Label(Strings.get("d5.body"));
-        body.setWrapText(true);
+        Label body = wrapped(Strings.get("d5.body"), CONFIRM_WIDTH);
         ListView<NameItem> list = nameList(entries, openIds, skippedIds, shortNames, shared);
-        Label skipped = new Label(Strings.plural("d5.skippedNote.one", "d5.skippedNote.many", skippedIds.size()));
-        skipped.setWrapText(true);
+        Label skipped = wrapped(Strings.plural("d5.skippedNote.one", "d5.skippedNote.many", skippedIds.size()),
+                CONFIRM_WIDTH);
         skipped.setVisible(!skippedIds.isEmpty());
         skipped.setManaged(!skippedIds.isEmpty());
-        Label open = new Label(Strings.plural("d5.openNote.one", "d5.openNote.many", openIds.size()));
-        open.setWrapText(true);
+        Label open = wrapped(Strings.plural("d5.openNote.one", "d5.openNote.many", openIds.size()), CONFIRM_WIDTH);
         open.setVisible(!openIds.isEmpty());
         open.setManaged(!openIds.isEmpty());
-        Label backup = new Label(Strings.get("d5.backupNote"));
-        backup.setWrapText(true);
-        VBox box = new VBox(8, body, list, fullNote(list), skipped, open, backup);
-        box.setPrefWidth(440);
+        Label backup = wrapped(Strings.get("d5.backupNote"), CONFIRM_WIDTH);
+        VBox box = contentBox(8, CONFIRM_WIDTH, body, list, fullNote(list), skipped, open, backup);
         ButtonType clear = new ButtonType(Strings.get("d5.clear"), ButtonData.OK_DONE);
         ButtonType cancel = new ButtonType(Strings.get("d5.cancel"), ButtonData.CANCEL_CLOSE);
         Dialog<ButtonType> dialog = Dialogs.builder()
@@ -143,6 +145,7 @@ final class BulkDialogs {
                 .build();
         DialogButtons.setDefault(dialog, cancel);
         DialogButtons.installTooltip(dialog, clear, Strings.get("d5.clear.tooltip"));
+        fitOnShown(dialog);
         Optional<ButtonType> r = dialog.showAndWait();
         return r.isPresent() && r.get() == clear;
     }
@@ -162,11 +165,9 @@ final class BulkDialogs {
         browse.setMinWidth(Region.USE_PREF_SIZE);
         HBox folderRow = new HBox(6, folderLabel, folder, browse);
         folderRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        Label folderState = new Label();
-        folderState.setWrapText(true);
+        Label folderState = wrapped("", OPTIONS_WIDTH);
         ThemeColors.textFill(folderState, ThemeColors.WARNING);
-        Label onePer = new Label();
-        onePer.setWrapText(true);
+        Label onePer = wrapped("", OPTIONS_WIDTH);
         // The four options are remembered between sessions; Compress is off by default, as in
         // QuPath's own export.
         CheckBox compress = new CheckBox(Strings.get("d6.compress"));
@@ -182,18 +183,17 @@ final class BulkDialogs {
         CheckBox exclude = new CheckBox(Strings.get("d6.excludeMeasurements"));
         exclude.setSelected(ProjectTabPlusPreferences.exportExcludeMeasurementsProperty().get());
         exclude.setTooltip(Tooltips.of(Strings.get("d6.excludeMeasurements.tooltip")));
-        VBox box = new VBox(8, folderRow, folderState, onePer, compress, pretty, exclude,
-                wrapped(Strings.get("d6.manifestNote")));
+        VBox box = contentBox(8, OPTIONS_WIDTH, folderRow, folderState, onePer, compress, pretty, exclude,
+                wrapped(Strings.get("d6.manifestNote"), OPTIONS_WIDTH));
         if (noData > 0) {
-            box.getChildren().add(wrapped(Strings.plural("d6.noDataNote.one", "d6.noDataNote.many", noData)));
+            box.getChildren().add(wrapped(Strings.plural("d6.noDataNote.one", "d6.noDataNote.many", noData), OPTIONS_WIDTH));
         }
         if (unsaved > 0) {
-            box.getChildren().add(wrapped(Strings.plural("d6.unsavedNote.one", "d6.unsavedNote.many", unsaved)));
+            box.getChildren().add(wrapped(Strings.plural("d6.unsavedNote.one", "d6.unsavedNote.many", unsaved), OPTIONS_WIDTH));
         }
         if (masked) {
-            box.getChildren().add(wrapped(Strings.get("d6.maskedNote")));
+            box.getChildren().add(wrapped(Strings.get("d6.maskedNote"), OPTIONS_WIDTH));
         }
-        box.setPrefWidth(460);
         ButtonType export = new ButtonType(Strings.get("d6.export"), ButtonData.OK_DONE);
         ButtonType cancel = new ButtonType(Strings.get("d6.cancel"), ButtonData.CANCEL_CLOSE);
         Dialog<ButtonType> dialog = Dialogs.builder()
@@ -227,6 +227,7 @@ final class BulkDialogs {
             }
         });
         validate.run();
+        fitOnShown(dialog);
         Optional<ButtonType> r = dialog.showAndWait();
         if (r.isEmpty() || r.get() != export) {
             return Optional.empty();
@@ -308,9 +309,10 @@ final class BulkDialogs {
         int perLine = bothNames ? 2 : 1;
         failed.setPrefRowCount(Math.min(LIST_ROWS, Math.max(3, perLine * outcome.failures().size())));
         failed.setTooltip(Tooltips.of(Strings.get("d7.failedList.tooltip")));
-        VBox box = new VBox(6, new Label(Strings.get("d7.failedLabel")), failed, wrapped(Strings.get("d7.logHint")));
-        box.setPrefWidth(bothNames ? 560 : 460);
-        Dialogs.builder()
+        double width = bothNames ? 560 : OPTIONS_WIDTH;
+        VBox box = contentBox(6, width, new Label(Strings.get("d7.failedLabel")), failed,
+                wrapped(Strings.get("d7.logHint"), width));
+        Dialog<ButtonType> dialog = Dialogs.builder()
                 .title(Strings.get(titleKey))
                 .headerText(Strings.format(headerKey, outcome.done(), outcome.failures().size()))
                 .content(box)
@@ -318,7 +320,9 @@ final class BulkDialogs {
                 .nonModal()
                 .buttons(new ButtonType(Strings.get("d7.close"), ButtonData.CANCEL_CLOSE))
                 .resizable()
-                .show();
+                .build();
+        fitOnShown(dialog);
+        dialog.show();
     }
 
     /**
@@ -371,8 +375,7 @@ final class BulkDialogs {
 
     /** @return a line under the list saying why some rows show full names; hidden when none do */
     private static Label fullNote(ListView<NameItem> list) {
-        Label l = new Label(Strings.get("d4.fullNamesNote"));
-        l.setWrapText(true);
+        Label l = wrapped(Strings.get("d4.fullNamesNote"), CONFIRM_WIDTH);
         boolean show = Boolean.TRUE.equals(list.getProperties().get(FULL_NAMES_SHOWN));
         l.setVisible(show);
         l.setManaged(show);
@@ -384,9 +387,50 @@ final class BulkDialogs {
         return s == null ? e.getImageName() : s;
     }
 
-    private static Label wrapped(String text) {
+    /**
+     * A VBox whose preferred height is measured at its preferred width. A dialog asks its content
+     * for the height at no particular width, where a wrapping label reports one line; the dialog
+     * then came out too short and its notes ended in "...".
+     */
+    private static VBox contentBox(double spacing, double width, Node... children) {
+        VBox box = new VBox(spacing, children) {
+            @Override
+            protected double computePrefHeight(double w) {
+                return super.computePrefHeight(w < 0 ? getPrefWidth() : w);
+            }
+        };
+        box.setPrefWidth(width);
+        return box;
+    }
+
+    /**
+     * Size the window to its content again once shown: the first sizing happens before the
+     * labels have their fonts, and counts too few wrapped lines.
+     */
+    private static void fitOnShown(Dialog<?> dialog) {
+        EventHandler<DialogEvent> before = dialog.getOnShown();
+        dialog.setOnShown(e -> {
+            if (before != null) {
+                before.handle(e);
+            }
+            Platform.runLater(() -> dialog.getDialogPane().getScene().getWindow().sizeToScene());
+        });
+    }
+
+    /**
+     * A wrapping label whose preferred height is computed at {@code width}, not for one line: the
+     * dialog sizes itself from the preferred heights, and a one-line height ellipsizes the text.
+     */
+    private static Label wrapped(String text, double width) {
         Label l = new Label(text);
-        l.setWrapText(true);
+        fitWidth(l, width);
         return l;
+    }
+
+    private static void fitWidth(javafx.scene.control.Labeled l, double width) {
+        l.setWrapText(true);
+        l.setPrefWidth(width);
+        l.setMaxWidth(Double.MAX_VALUE);
+        l.setMinHeight(Region.USE_PREF_SIZE);
     }
 }
