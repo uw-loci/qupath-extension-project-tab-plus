@@ -51,6 +51,14 @@ not yet verified (see the README).
   export naming, export manifest and bulk jobs, plus six hidden-GUI harness scenarios under
   `harness/`.
 
+### Fixed
+
+- The custom current-image highlight and the highlight color preview keep their color when
+  QuPath's "Dates & numbers" is set to German, French, Turkish or another decimal-comma
+  language: the CSS was written as `rgba(r, g, b, 0,50)`, which JavaFX rejects. The
+  indicator legend swatches are written the same way, so native-digit locales (Arabic,
+  Persian) cannot break them either.
+
 ### Not in this release
 
 Raised in testing and deferred to a later version:

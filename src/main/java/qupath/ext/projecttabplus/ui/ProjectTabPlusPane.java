@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -1943,7 +1944,7 @@ public final class ProjectTabPlusPane extends BorderPane {
             return null;
         }
         int argb = ProjectTabPlusPreferences.currentImageHighlightColorProperty().get();
-        return String.format("-fx-background-color: rgba(%d, %d, %d, %.2f);",
+        return String.format(Locale.ROOT, "-fx-background-color: rgba(%d, %d, %d, %.2f);",
                 ColorTools.red(argb), ColorTools.green(argb), ColorTools.blue(argb),
                 ColorTools.alpha(argb) / 255.0);
     }

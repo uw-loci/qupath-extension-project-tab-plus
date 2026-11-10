@@ -1,5 +1,6 @@
 package qupath.ext.projecttabplus.ui;
 
+import java.util.Locale;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
@@ -110,7 +111,7 @@ final class IndicatorLegendDialog {
         r.setMinSize(SWATCH, SWATCH);
         r.setPrefSize(SWATCH, SWATCH);
         r.setMaxSize(SWATCH, SWATCH);
-        r.setStyle(String.format("-fx-background-color: rgb(%d, %d, %d); -fx-border-color: %s;",
+        r.setStyle(String.format(Locale.ROOT, "-fx-background-color: rgb(%d, %d, %d); -fx-border-color: %s;",
                 (int) Math.round(color.getRed() * 255), (int) Math.round(color.getGreen() * 255),
                 (int) Math.round(color.getBlue() * 255), ThemeColors.BORDER));
         Label l = wrapped(text, TEXT_WIDTH - SWATCH - 8);

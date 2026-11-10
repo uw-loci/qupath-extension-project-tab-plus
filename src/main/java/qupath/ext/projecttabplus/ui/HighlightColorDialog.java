@@ -1,5 +1,6 @@
 package qupath.ext.projecttabplus.ui;
 
+import java.util.Locale;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.value.ChangeListener;
@@ -119,7 +120,7 @@ final class HighlightColorDialog {
     }
 
     private static String rgba(int argb) {
-        return String.format("rgba(%d, %d, %d, %.2f)", ColorTools.red(argb), ColorTools.green(argb),
+        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.2f)", ColorTools.red(argb), ColorTools.green(argb),
                 ColorTools.blue(argb), ColorTools.alpha(argb) / 255.0);
     }
 }
