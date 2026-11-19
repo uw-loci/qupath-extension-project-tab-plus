@@ -151,7 +151,7 @@ an image under it has annotations and detections but no TMA cores.*
 | Jump, Group by, Checkbox mode, Refresh, Legend buttons | Second toolbar row. |
 | Search box and key/value filter | Bottom of the tab, where the built-in tab keeps its filter. |
 | Right-click menu | Any row: the built-in tab's items plus **Jump to current image**, **Remove current image...**, **Check** / **Uncheck** (in checkbox mode), **Group by...** and **Set current image highlight color...**. |
-| Preferences | **Edit > Preferences**, category **Project+**. |
+| Preferences | **Edit > Preferences**, category **Project+**. **Clearer toggle buttons** (off by default) applies to all of QuPath: a toggle that is on is tinted with a solid bar along the bottom, and clicking no longer leaves the blue focus outline that looks like on (QuPath issue #2242). |
 
 ![The gear menu open over the tab on Windows. Items in order: Save profile (grayed), Save profile as..., Rename profile... (grayed), Delete profile... (grayed), Manage profiles...; Edit display settings..., Thumbnail size, Indicators; Create project..., Open project..., Add images...; Remove current image... (grayed), Jump to current image (Ctrl+J) (grayed); Show built-in Project tab (checked), Indicator legend..., Set current image highlight color.... Behind it, collapsed group rows show chips such as A D - and - - -.](images/profile-menu.png)
 

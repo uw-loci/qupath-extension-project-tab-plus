@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qupath.ext.projecttabplus.model.ProfileStore;
 import qupath.ext.projecttabplus.preferences.ProjectTabPlusPreferences;
+import qupath.ext.projecttabplus.ui.ClearerToggleButtons;
 import qupath.ext.projecttabplus.ui.ProjectTabPlusPane;
 import qupath.ext.projecttabplus.ui.Strings;
 import qupath.ext.projecttabplus.ui.Tooltips;
@@ -49,6 +50,7 @@ public class ProjectTabPlusExtension implements QuPathExtension {
         installed = true;
         this.qupath = qupath;
         ProjectTabPlusPreferences.installPreferences(qupath);
+        ClearerToggleButtons.bind(ProjectTabPlusPreferences.clearerToggleButtonsProperty());
         Platform.runLater(this::installTab);
     }
 

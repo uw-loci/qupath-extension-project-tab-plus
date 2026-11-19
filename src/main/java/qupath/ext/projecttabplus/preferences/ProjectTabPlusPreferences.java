@@ -30,6 +30,8 @@ public final class ProjectTabPlusPreferences {
             PathPrefs.createPersistentPreference(PREFIX + "currentImageHighlightColor", DEFAULT_HIGHLIGHT);
     private static final BooleanProperty selectTabOnStartup =
             PathPrefs.createPersistentPreference(PREFIX + "selectTabOnStartup", true);
+    private static final BooleanProperty clearerToggleButtons =
+            PathPrefs.createPersistentPreference(PREFIX + "clearerToggleButtons", false);
     private static final StringProperty lastProfile =
             PathPrefs.createPersistentPreference(PREFIX + "lastProfile", "Default");
     // The four export-dialog options, remembered between sessions; not shown in the preference pane.
@@ -79,7 +81,17 @@ public final class ProjectTabPlusPreferences {
                 .category(category)
                 .description(Strings.get("prefs.selectOnStartup.description"))
                 .build());
+        items.add(new PropertyItemBuilder<>(clearerToggleButtons, Boolean.class)
+                .name(Strings.get("prefs.clearerToggles.name"))
+                .category(category)
+                .description(Strings.get("prefs.clearerToggles.description"))
+                .build());
         installed = true;
+    }
+
+    /** @return whether every toggle button in QuPath shows its on/off state more clearly */
+    public static BooleanProperty clearerToggleButtonsProperty() {
+        return clearerToggleButtons;
     }
 
     /** @return whether QuPath's own Project tab is detached from the analysis pane */

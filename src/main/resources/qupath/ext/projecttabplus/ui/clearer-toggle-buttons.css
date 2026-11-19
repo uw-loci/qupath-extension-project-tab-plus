@@ -1,0 +1,32 @@
+/*
+ * Clearer toggle buttons (QuPath issue #2242).
+ * ON: a tinted fill with a solid bar along the bottom edge, so on and off differ by more than a
+ * slight shade and colored icons stay readable.
+ * Focus from a mouse click draws no ring, so a button just switched OFF no longer keeps the cyan
+ * outline that reads as ON. Keyboard focus (Tab) still draws the ring.
+ * Colors come from clearer-toggle-buttons-light.css or -dark.css, chosen to match the theme.
+ */
+.toggle-button:selected {
+    -fx-background-color: -fx-outer-border, -ptp-toggle-on-bar, -ptp-toggle-on-fill;
+    -fx-background-insets: 0, 1, 1 1 4 1;
+    -fx-background-radius: 3, 2, 2 2 0 0;
+}
+
+.toggle-button:selected:hover {
+    -fx-background-color: -fx-outer-border, -ptp-toggle-on-bar, -ptp-toggle-on-hover;
+}
+
+.toggle-button:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toggle-button:focus-visible {
+    -fx-focus-color: #039ED3;
+    -fx-faint-focus-color: #039ED322;
+}
+
+.toggle-button:selected:focus-visible {
+    -fx-background-color: #039ED3, -ptp-toggle-on-bar, -ptp-toggle-on-fill;
+    -fx-background-insets: -0.2, 1, 1 1 4 1;
+}

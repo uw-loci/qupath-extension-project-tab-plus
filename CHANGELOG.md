@@ -46,10 +46,15 @@ not yet verified (see the README).
 - Preferences: hide the built-in tab, custom current-image highlight color, select the tab
   on startup.
 - Keyboard: Ctrl+F, Escape, Enter, Space, Ctrl+J, F5, Ctrl+Shift+N (check all shown),
-  Ctrl+Shift+D (clear checks), all scoped to the tab.
+  Ctrl+Shift+X (clear checks), all scoped to the tab.
 - Unit tests for the tree builder, filter, profile store, delete eligibility, summary reader,
   export naming, export manifest and bulk jobs, plus six hidden-GUI harness scenarios under
   `harness/`.
+- **Clearer toggle buttons** preference (off by default), for QuPath issue #2242: every toggle
+  button in QuPath shows ON as a tinted fill with a solid bar along the bottom, and a mouse click
+  no longer leaves the cyan focus outline that reads as ON on a button just switched off; Tab
+  still draws it. Added to each window rather than installed as a theme, so it sits on top of
+  Light or Dark and follows it.
 
 ### Fixed
 
